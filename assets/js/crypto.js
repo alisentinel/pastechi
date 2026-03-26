@@ -24,7 +24,7 @@ function getSubtleOrThrow() {
     return subtle;
 }
 
-function bytesToB64Url(bytes) {
+export function bytesToB64Url(bytes) {
     let binary = "";
     bytes.forEach((item) => {
         binary += String.fromCharCode(item);
@@ -32,7 +32,7 @@ function bytesToB64Url(bytes) {
     return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
 }
 
-function b64UrlToBytes(value) {
+export function b64UrlToBytes(value) {
     const pad = value.length % 4 === 0 ? "" : "=".repeat(4 - (value.length % 4));
     const base64 = value.replace(/-/g, "+").replace(/_/g, "/") + pad;
     const binary = atob(base64);

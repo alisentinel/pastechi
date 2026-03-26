@@ -39,6 +39,11 @@ require_once __DIR__ . '/lib/i18n.php';
                 <div class="mb-3">
                     <textarea id="content" class="form-control" placeholder="<?= htmlspecialchars(t('create.content_placeholder'), ENT_QUOTES, 'UTF-8') ?>" required></textarea>
                 </div>
+                <div class="mb-3">
+                    <label for="attachment" class="form-label"><?= htmlspecialchars(t('create.attachment_label'), ENT_QUOTES, 'UTF-8') ?></label>
+                    <input id="attachment" class="form-control" type="file">
+                    <div id="attachmentPolicyHint" class="form-text text-secondary"><?= htmlspecialchars(t('create.attachment_hint'), ENT_QUOTES, 'UTF-8') ?></div>
+                </div>
 
                 <details class="border rounded p-3 mb-3">
                     <summary class="fw-semibold"><?= htmlspecialchars(t('create.advanced'), ENT_QUOTES, 'UTF-8') ?></summary>
@@ -152,8 +157,15 @@ window.__createModuleLoaded = false;
 <script>window.__APP_BASE = <?= json_encode(app_base_path(), JSON_UNESCAPED_SLASHES) ?>;</script>
 <script>window.__I18N = <?= json_encode(i18n_messages(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;</script>
 <script>window.__APP_LANG = <?= json_encode(current_lang(), JSON_UNESCAPED_SLASHES) ?>;</script>
+<script>
+window.__ATTACHMENT_POLICY = <?= json_encode([
+    'maxBytes' => ATTACHMENT_MAX_BYTES,
+    'allowedExtensions' => attachment_allowed_extensions_list(),
+    'raw' => ATTACHMENT_ALLOWED_EXTENSIONS,
+], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
+</script>
 <script type="module" src="<?= htmlspecialchars(app_url('assets/js/ui.js?v=20260327a'), ENT_QUOTES, 'UTF-8') ?>"></script>
-<script type="module" src="<?= htmlspecialchars(app_url('assets/js/create.js?v=20260327f'), ENT_QUOTES, 'UTF-8') ?>"></script>
+<script type="module" src="<?= htmlspecialchars(app_url('assets/js/create.js?v=20260327g'), ENT_QUOTES, 'UTF-8') ?>"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 </body>
 </html>

@@ -54,6 +54,11 @@ if (!preg_match('/^[0-9]{6}$/', $code)) {
         <div class="card-body">
             <h2 id="pasteTitle" class="h5"><?= htmlspecialchars(t('paste.untitled'), ENT_QUOTES, 'UTF-8') ?></h2>
             <div id="pasteOutput"></div>
+            <div id="attachmentBox" class="mt-3 d-none">
+                <h3 class="h6 mb-2"><?= htmlspecialchars(t('paste.attachment'), ENT_QUOTES, 'UTF-8') ?></h3>
+                <p id="attachmentMeta" class="small text-secondary mb-2"></p>
+                <button id="downloadAttachmentBtn" class="btn btn-sm btn-outline-light" type="button"><?= htmlspecialchars(t('paste.download_attachment'), ENT_QUOTES, 'UTF-8') ?></button>
+            </div>
         </div>
     </section>
 
@@ -79,7 +84,7 @@ if (!preg_match('/^[0-9]{6}$/', $code)) {
 <script>window.__I18N = <?= json_encode(i18n_messages(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;</script>
 <script>window.__APP_LANG = <?= json_encode(current_lang(), JSON_UNESCAPED_SLASHES) ?>;</script>
 <script type="module" src="<?= htmlspecialchars(app_url('assets/js/ui.js?v=20260327a'), ENT_QUOTES, 'UTF-8') ?>"></script>
-<script type="module" src="<?= htmlspecialchars(app_url('assets/js/view.js?v=20260327f'), ENT_QUOTES, 'UTF-8') ?>"></script>
+<script type="module" src="<?= htmlspecialchars(app_url('assets/js/view.js?v=20260327g'), ENT_QUOTES, 'UTF-8') ?>"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 </body>
 </html>

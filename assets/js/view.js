@@ -1,10 +1,11 @@
 import {
+    b64UrlToBytes,
     decryptDiscussionMessage,
     decryptObject,
     encryptDiscussionMessage,
     fingerprintHash,
     parseUrlSecret,
-} from "./crypto.js?v=20260327e";
+} from "./crypto.js?v=20260327g";
 import { installGlobalClientErrorLogging, logClient } from "./logger.js?v=20260327e";
 
 const code = document.body.dataset.code || "";
@@ -14,6 +15,9 @@ const passwordInput = document.getElementById("password");
 const titleEl = document.getElementById("pasteTitle");
 const outputEl = document.getElementById("pasteOutput");
 const contentCard = document.getElementById("contentCard");
+const attachmentBox = document.getElementById("attachmentBox");
+const attachmentMetaEl = document.getElementById("attachmentMeta");
+const downloadAttachmentBtn = document.getElementById("downloadAttachmentBtn");
 const forensicCard = document.getElementById("forensicsCard");
 const forensicOutput = document.getElementById("forensicsOutput");
 const discussionCard = document.getElementById("discussionCard");
@@ -27,6 +31,7 @@ let discussionCursor = 0;
 let discussionParams = null;
 let currentPassword = "";
 let decryptedPayload = null;
+let decryptedAttachment = null;
 
 function t(key, fallback, replacements = {}) {
     let text = window.__I18N?.[key] || fallback;
@@ -144,7 +149,50 @@ function renderPaste(payload) {
     decryptedPayload = payload;
     titleEl.textContent = payload.title || t("paste.untitled", "Untitled");
     outputEl.textContent = payload.content || "";
+    renderAttachment(payload.attachment || null);
     contentCard.classList.remove("d-none");
+}
+
+function formatBytes(size) {
+    const bytes = Number(size || 0);
+    if (!Number.isFinite(bytes) || bytes < 1024) {
+        return `${Math.max(0, bytes)} B`;
+    }
+    if (bytes < (1024 * 1024)) {
+        return `${(bytes / 1024).toFixed(1)} KB`;
+    }
+    return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+}
+
+function safeFileName(name) {
+    const trimmed = String(name || "attachment").trim();
+    if (trimmed === "") {
+        return "attachment";
+    }
+    return trimmed.replace(/[^a-zA-Z0-9._\- ()]/g, "_");
+}
+
+function renderAttachment(attachment) {
+    decryptedAttachment = null;
+    if (!attachmentBox || !downloadAttachmentBtn || !attachmentMetaEl) {
+        return;
+    }
+
+    if (!attachment || typeof attachment !== "object" || !attachment.data) {
+        attachmentBox.classList.add("d-none");
+        return;
+    }
+
+    const name = safeFileName(attachment.name || "attachment");
+    const type = String(attachment.type || "application/octet-stream");
+    const size = Number(attachment.size || 0);
+    attachmentMetaEl.textContent = `${name} · ${formatBytes(size)}`;
+    decryptedAttachment = {
+        name,
+        type,
+        bytes: b64UrlToBytes(String(attachment.data || "")),
+    };
+    attachmentBox.classList.remove("d-none");
 }
 
 async function attemptDecrypt(password) {
@@ -256,6 +304,22 @@ discussionForm?.addEventListener("submit", async (event) => {
 decryptForm?.addEventListener("submit", async (event) => {
     event.preventDefault();
     await attemptDecrypt(passwordInput.value || "");
+});
+
+downloadAttachmentBtn?.addEventListener("click", () => {
+    if (!decryptedAttachment) {
+        return;
+    }
+
+    const blob = new Blob([decryptedAttachment.bytes], { type: decryptedAttachment.type || "application/octet-stream" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = decryptedAttachment.name || "attachment";
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
 });
 
 installGlobalClientErrorLogging("view");

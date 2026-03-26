@@ -8,7 +8,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
 }
 
 enforce_rate_limit('create');
-$input = read_json_input();
+$input = read_json_input(MAX_CREATE_REQUEST_BYTES);
 
 $code = (string) ($input['code'] ?? '');
 if (!verify_code($code)) {
@@ -30,11 +30,39 @@ $kdfIterations = (int) ($envelope['kdfIterations'] ?? 0);
 if ($ciphertext === '' || $iv === '' || $salt === '') {
     json_response(['ok' => false, 'error' => 'invalid_envelope'], 400);
 }
-if (strlen($ciphertext) > MAX_PAYLOAD_BYTES * 2 || strlen($iv) > 128 || strlen($salt) > 128) {
+if (strlen($ciphertext) > MAX_CREATE_REQUEST_BYTES || strlen($iv) > 128 || strlen($salt) > 128) {
     json_response(['ok' => false, 'error' => 'payload_too_large'], 413);
 }
 if ($kdfIterations < MIN_KDF_ITERATIONS || $kdfIterations > MAX_KDF_ITERATIONS) {
     json_response(['ok' => false, 'error' => 'invalid_kdf_iterations'], 400);
+}
+
+$attachmentMetaInput = $input['attachmentMeta'] ?? null;
+if ($attachmentMetaInput !== null) {
+    if (!is_array($attachmentMetaInput)) {
+        json_response(['ok' => false, 'error' => 'invalid_attachment_meta'], 400);
+    }
+
+    if (ATTACHMENT_MAX_BYTES <= 0) {
+        json_response(['ok' => false, 'error' => 'attachments_disabled'], 400);
+    }
+
+    $attachmentSize = max(0, (int) ($attachmentMetaInput['size'] ?? 0));
+    $attachmentName = trim((string) ($attachmentMetaInput['name'] ?? ''));
+    $attachmentExtension = trim((string) ($attachmentMetaInput['extension'] ?? ''));
+
+    if ($attachmentSize <= 0 || $attachmentName === '') {
+        json_response(['ok' => false, 'error' => 'invalid_attachment_meta'], 400);
+    }
+    if ($attachmentSize > ATTACHMENT_MAX_BYTES) {
+        json_response(['ok' => false, 'error' => 'attachment_too_large'], 413);
+    }
+    if (!preg_match('/^[a-zA-Z0-9._\- ]{1,255}$/', $attachmentName)) {
+        json_response(['ok' => false, 'error' => 'invalid_attachment_name'], 400);
+    }
+    if (!is_attachment_extension_allowed($attachmentExtension)) {
+        json_response(['ok' => false, 'error' => 'attachment_extension_not_allowed'], 400);
+    }
 }
 
 $ttlSeconds = normalize_ttl(isset($input['ttlSeconds']) ? (int) $input['ttlSeconds'] : 0);

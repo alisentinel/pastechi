@@ -14,6 +14,7 @@ All encryption and decryption happen in the browser via Web Crypto API.
 - QR code shown for completed share URL (mobile scan)
 - Key derivation with PBKDF2 using: tracking code + optional password + URL fragment secret
 - AES-256-GCM encryption with per-paste random IV + salt
+- Optional encrypted attachment (browser-side encrypted, server stores ciphertext only)
 - Expiry controls:
 	- TTL destroy-after-time
 	- destroy-after-X-views
@@ -139,6 +140,9 @@ No plaintext is stored.
 2. Upload the entire folder to web root (or subfolder).
 3. Copy `.env.example` to `.env` and configure DB credentials:
 	 - `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASS`
+	 - `ATTACHMENT_MAX_BYTES` (max attachment size in bytes, set `0` to disable)
+	 - `ATTACHMENT_ALLOWED_EXTENSIONS` (comma-separated extensions or `*` for any)
+	 - `MAX_CREATE_REQUEST_BYTES` (optional override for very large encrypted requests)
 	 - Use a strong, unique password for `DB_PASS`
 	 - **Do NOT commit `.env` to version control**
 4. Run database migrations (from root directory):

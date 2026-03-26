@@ -19,14 +19,15 @@ function json_response(array $data, int $status = 200): never
     exit;
 }
 
-function read_json_input(): array
+function read_json_input(?int $maxBytes = null): array
 {
     $raw = file_get_contents('php://input');
     if ($raw === false || $raw === '') {
         return [];
     }
 
-    if (strlen($raw) > MAX_PAYLOAD_BYTES * 2) {
+    $limit = $maxBytes ?? (MAX_PAYLOAD_BYTES * 2);
+    if (strlen($raw) > $limit) {
         json_response(['ok' => false, 'error' => 'payload_too_large'], 413);
     }
 
