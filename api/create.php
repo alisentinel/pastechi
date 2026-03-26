@@ -72,54 +72,80 @@ if ($discussionEnabled && strlen($discussionSalt) > 128) {
     json_response(['ok' => false, 'error' => 'invalid_discussion_salt'], 400);
 }
 
-$path = paste_path($code);
-if (is_file($path)) {
-    app_log('info', 'create_code_collision', ['code' => $code]);
-    random_delay();
-    json_response(['ok' => false, 'error' => 'code_unavailable'], 409);
-}
+try {
+    $pdo = get_db();
+    $stmt = $pdo->prepare('INSERT INTO pastes (
+        code,
+        ciphertext,
+        iv,
+        salt,
+        kdfIterations,
+        createdAt,
+        expireAt,
+        views,
+        maxViews,
+        burnAfterRead,
+        lockUntil,
+        binding_type,
+        binding_hash,
+        modes_discussion,
+        modes_forensics,
+        discussion_salt,
+        requires_fragment,
+        password_protected,
+        forensics_buckets
+    ) VALUES (
+        :code,
+        :ciphertext,
+        :iv,
+        :salt,
+        :kdfIterations,
+        :createdAt,
+        :expireAt,
+        :views,
+        :maxViews,
+        :burnAfterRead,
+        :lockUntil,
+        :binding_type,
+        :binding_hash,
+        :modes_discussion,
+        :modes_forensics,
+        :discussion_salt,
+        :requires_fragment,
+        :password_protected,
+        CAST(:forensics_buckets AS JSON)
+    )');
 
-$record = [
-    'version' => 1,
-    'code' => $code,
-    'createdAt' => now(),
-    'expireAt' => $expireAt,
-    'maxViews' => $maxViews,
-    'burnAfterRead' => $burnAfterRead,
-    'views' => 0,
-    'ciphertext' => $ciphertext,
-    'iv' => $iv,
-    'salt' => $salt,
-    'kdfIterations' => $kdfIterations,
-    'alg' => 'AES-GCM',
-    'lockUntil' => $lockUntil,
-    'binding' => [
-        'type' => $type,
-        'hash' => '',
-    ],
-    'modes' => [
-        'discussion' => $discussionEnabled,
-        'forensics' => $forensicsEnabled,
-    ],
-    'discussion' => [
-        'salt' => $discussionSalt,
-    ],
-    'access' => [
-        'requiresFragment' => $requiresFragment,
-        'passwordProtected' => $passwordProtected,
-    ],
-    'forensics' => [
-        'buckets' => [],
-    ],
-];
+    $stmt->execute([
+        ':code' => $code,
+        ':ciphertext' => $ciphertext,
+        ':iv' => $iv,
+        ':salt' => $salt,
+        ':kdfIterations' => $kdfIterations,
+        ':createdAt' => now(),
+        ':expireAt' => $expireAt,
+        ':views' => 0,
+        ':maxViews' => $maxViews,
+        ':burnAfterRead' => $burnAfterRead ? 1 : 0,
+        ':lockUntil' => $lockUntil,
+        ':binding_type' => $type,
+        ':binding_hash' => '',
+        ':modes_discussion' => $discussionEnabled ? 1 : 0,
+        ':modes_forensics' => $forensicsEnabled ? 1 : 0,
+        ':discussion_salt' => $discussionSalt,
+        ':requires_fragment' => $requiresFragment ? 1 : 0,
+        ':password_protected' => $passwordProtected ? 1 : 0,
+        ':forensics_buckets' => '{}',
+    ]);
+} catch (PDOException $e) {
+    if ((int) $e->getCode() === 23000) {
+        app_log('info', 'create_code_collision', ['code' => $code]);
+        random_delay();
+        json_response(['ok' => false, 'error' => 'code_unavailable'], 409);
+    }
 
-if (!atomic_write_json($path, $record)) {
-    app_log('error', 'create_storage_write_failed', ['code' => $code]);
+    app_log('error', 'create_storage_write_failed', ['code' => $code, 'error' => $e->getMessage()]);
     json_response(['ok' => false, 'error' => 'storage_write_failed'], 500);
-}
-
-if ($discussionEnabled) {
-    atomic_write_json(discussion_path($code), ['messages' => []]);
 }
 
 app_log('info', 'paste_created', [
@@ -134,5 +160,5 @@ app_log('info', 'paste_created', [
 json_response([
     'ok' => true,
     'code' => $code,
-    'path' => '/' . $code,
+    'path' => preg_replace('#/api$#', '', app_base_path()) . '/' . $code,
 ]);

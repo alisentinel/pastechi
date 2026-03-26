@@ -17,17 +17,37 @@ if (!verify_code($code)) {
     json_response(['ok' => false, 'error' => 'invalid_code'], 400);
 }
 
-$paste = read_json_file(paste_path($code));
-if (!$paste || (($paste['modes']['discussion'] ?? false) !== true)) {
+try {
+    $pdo = get_db();
+    $pasteStmt = $pdo->prepare('SELECT code, modes_discussion, kdfIterations FROM pastes WHERE code = :code');
+    $pasteStmt->execute([':code' => $code]);
+    $paste = $pasteStmt->fetch(PDO::FETCH_ASSOC);
+} catch (Throwable $e) {
+    app_log('error', 'discussion_storage_read_failed', ['code' => $code, 'error' => $e->getMessage()]);
+    json_response(['ok' => false, 'error' => 'discussion_unavailable'], 404);
+}
+
+if (!is_array($paste) || ((bool) ($paste['modes_discussion'] ?? false) !== true)) {
     app_log('info', 'discussion_unavailable', ['code' => $code]);
     json_response(['ok' => false, 'error' => 'discussion_unavailable'], 404);
 }
 
 if ($method === 'GET') {
     $since = max(0, (int) ($_GET['since'] ?? 0));
-    $discussion = read_json_file(discussion_path($code)) ?? ['messages' => []];
-    $all = $discussion['messages'] ?? [];
-    $messages = array_values(array_filter($all, static fn ($item) => ((int) ($item['id'] ?? 0)) > $since));
+    $stmt = $pdo->prepare('SELECT id, createdAt, message_ciphertext, message_iv FROM discussions WHERE paste_code = :code AND id > :since ORDER BY id ASC LIMIT 200');
+    $stmt->bindValue(':code', $code, PDO::PARAM_STR);
+    $stmt->bindValue(':since', $since, PDO::PARAM_INT);
+    $stmt->execute();
+
+    $messages = [];
+    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+        $messages[] = [
+            'id' => (int) ($row['id'] ?? 0),
+            'ts' => (int) ($row['createdAt'] ?? 0),
+            'ciphertext' => (string) ($row['message_ciphertext'] ?? ''),
+            'iv' => (string) ($row['message_iv'] ?? ''),
+        ];
+    }
 
     json_response([
         'ok' => true,
@@ -51,26 +71,25 @@ if ($ciphertext === '' || $iv === '' || strlen($ciphertext) > MAX_MESSAGE_BYTES 
     json_response(['ok' => false, 'error' => 'invalid_message'], 400);
 }
 
-$path = discussion_path($code);
-$discussion = read_json_file($path) ?? ['messages' => []];
-$messages = $discussion['messages'] ?? [];
-$lastId = (int) (($messages[count($messages) - 1]['id'] ?? 0));
-$newId = $lastId + 1;
+try {
+    $insert = $pdo->prepare('INSERT INTO discussions (paste_code, message_ciphertext, message_iv, message_kdfIterations, createdAt) VALUES (:code, :ciphertext, :iv, :kdfIterations, :createdAt)');
+    $insert->execute([
+        ':code' => $code,
+        ':ciphertext' => $ciphertext,
+        ':iv' => $iv,
+        ':kdfIterations' => (int) ($paste['kdfIterations'] ?? MIN_KDF_ITERATIONS),
+        ':createdAt' => now(),
+    ]);
 
-$messages[] = [
-    'id' => $newId,
-    'ts' => now(),
-    'ciphertext' => $ciphertext,
-    'iv' => $iv,
-];
+    $newId = (int) $pdo->lastInsertId();
 
-if (count($messages) > 200) {
-    $messages = array_slice($messages, -200);
-}
-
-$discussion['messages'] = $messages;
-if (!atomic_write_json($path, $discussion)) {
-    app_log('error', 'discussion_storage_write_failed', ['code' => $code]);
+    $trim = $pdo->prepare('DELETE FROM discussions WHERE paste_code = :code AND id NOT IN (SELECT id FROM (SELECT id FROM discussions WHERE paste_code = :code2 ORDER BY id DESC LIMIT 200) AS recent_ids)');
+    $trim->execute([
+        ':code' => $code,
+        ':code2' => $code,
+    ]);
+} catch (Throwable $e) {
+    app_log('error', 'discussion_storage_write_failed', ['code' => $code, 'error' => $e->getMessage()]);
     json_response(['ok' => false, 'error' => 'storage_write_failed'], 500);
 }
 

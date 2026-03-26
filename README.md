@@ -126,7 +126,6 @@ No plaintext is stored.
 - PHP 8.1+ with PDO extension
 - MySQL 5.7+ / MariaDB 10.2+
 - Apache with `mod_rewrite` (or equivalent route adaptation on Nginx)
-- File write permissions for `storage/logs/`
 
 ### Steps
 
@@ -148,11 +147,10 @@ No plaintext is stored.
 	mysql -u pastechi_user -p pastechi < migrations/002_create_discussions_table.sql
 	mysql -u pastechi_user -p pastechi < migrations/003_create_rate_limits_table.sql
 	mysql -u pastechi_user -p pastechi < migrations/004_create_logs_table.sql
+	mysql -u pastechi_user -p pastechi < migrations/005_add_access_columns_to_pastes.sql
 	```
-5. Ensure `storage/logs/` is writable by PHP.
-6. Change `SERVER_PEPPER` in `lib/config.php` to a long random secret.
-7. Keep `storage/.htaccess` present to block direct file reads.
-8. (Optional) configure cron:
+5. Change `SERVER_PEPPER` in `lib/config.php` to a long random secret.
+6. (Optional) configure cron:
 	 - `php /path/to/pastechi/cron_cleanup.php`
 
 Done. Open `/` in browser.
@@ -193,7 +191,7 @@ Done. Open `/` in browser.
 - No Composer dependencies.
 - No build toolchain.
 - Works on shared hosting with PHP 8.1+ and database access.
-- `storage/logs/app.log` contains sanitized server + client trace logs.
+- Logs are stored in SQL table `logs`.
 
 ## License
 

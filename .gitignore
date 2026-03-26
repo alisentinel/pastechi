@@ -5,13 +5,8 @@ lib/db-config.local.php
 .env
 .env.local
 
-# Logs
-storage/logs/
-
-# Pastes and discussions (local testing data)
-storage/pastes/
-storage/discussions/
-storage/ratelimit/
+# Legacy file storage (unused with SQL runtime)
+# storage/
 
 # IDE
 .vscode/

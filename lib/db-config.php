@@ -91,12 +91,10 @@ function get_db(): PDO {
                 get_pdo_options()
             );
         } catch (PDOException $e) {
-            app_log('error', 'db_connection_failed', [
-                'host' => DB_HOST,
-                'database' => DB_NAME,
-                'error' => $e->getMessage(),
-            ]);
-            json_response(['ok' => false, 'error' => 'database_unavailable'], 503);
+            if (function_exists('json_response')) {
+                json_response(['ok' => false, 'error' => 'database_unavailable'], 503);
+            }
+            throw new RuntimeException('Database connection failed: ' . $e->getMessage(), 0, $e);
         }
     }
     
@@ -154,4 +152,77 @@ function write_env_file(string $host, int $port, string $name, string $user, str
         . 'DB_PASS=' . $pass . "\n";
 
     return file_put_contents($envPath, $content, LOCK_EX) !== false;
+}
+
+function ensure_database_schema(): void
+{
+    static $initialized = false;
+    if ($initialized) {
+        return;
+    }
+
+    $pdo = get_db();
+
+    $pdo->exec("CREATE TABLE IF NOT EXISTS pastes (
+        code VARCHAR(6) PRIMARY KEY,
+        ciphertext LONGTEXT NOT NULL,
+        iv VARCHAR(256) NOT NULL,
+        salt VARCHAR(256) NOT NULL,
+        kdfIterations INT NOT NULL,
+        createdAt BIGINT NOT NULL,
+        expireAt BIGINT NOT NULL,
+        views INT NOT NULL DEFAULT 0,
+        maxViews INT NOT NULL DEFAULT 0,
+        burnAfterRead BOOLEAN NOT NULL DEFAULT FALSE,
+        lockUntil BIGINT NOT NULL DEFAULT 0,
+        binding_type VARCHAR(32) NOT NULL DEFAULT 'none',
+        binding_hash VARCHAR(256) NOT NULL DEFAULT '',
+        modes_discussion BOOLEAN NOT NULL DEFAULT FALSE,
+        modes_forensics BOOLEAN NOT NULL DEFAULT FALSE,
+        discussion_salt VARCHAR(256) NOT NULL DEFAULT '',
+        requires_fragment BOOLEAN NOT NULL DEFAULT FALSE,
+        password_protected BOOLEAN NOT NULL DEFAULT TRUE,
+        forensics_buckets JSON DEFAULT NULL,
+        INSERT_TS TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UPDATE_TS TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_expires (expireAt),
+        INDEX idx_created (createdAt)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+    $pdo->exec("CREATE TABLE IF NOT EXISTS discussions (
+        id BIGINT AUTO_INCREMENT PRIMARY KEY,
+        paste_code VARCHAR(6) NOT NULL,
+        message_ciphertext LONGTEXT NOT NULL,
+        message_iv VARCHAR(256) NOT NULL,
+        message_kdfIterations INT NOT NULL,
+        createdAt BIGINT NOT NULL,
+        INSERT_TS TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (paste_code) REFERENCES pastes(code) ON DELETE CASCADE,
+        INDEX idx_paste_code (paste_code),
+        INDEX idx_created (createdAt)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+    $pdo->exec("CREATE TABLE IF NOT EXISTS rate_limits (
+        `key` VARCHAR(128) PRIMARY KEY,
+        window_start BIGINT NOT NULL,
+        count INT NOT NULL DEFAULT 0,
+        INSERT_TS TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UPDATE_TS TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_window_start (window_start)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+    $pdo->exec("CREATE TABLE IF NOT EXISTS logs (
+        id BIGINT AUTO_INCREMENT PRIMARY KEY,
+        ts BIGINT NOT NULL,
+        level VARCHAR(16) NOT NULL,
+        message VARCHAR(256) NOT NULL,
+        path VARCHAR(256) NOT NULL DEFAULT '',
+        context_json JSON NULL,
+        INSERT_TS TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_ts (ts),
+        INDEX idx_level (level),
+        INDEX idx_message (message)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+    $initialized = true;
 }

@@ -40,11 +40,7 @@ function read_json_input(): array
 
 function ensure_storage(): void
 {
-    foreach ([PASTES_DIR, DISCUSSIONS_DIR, RATELIMIT_DIR, LOG_DIR] as $dir) {
-        if (!is_dir($dir)) {
-            mkdir($dir, 0770, true);
-        }
-    }
+    // Storage directories are no longer required for runtime persistence.
 }
 
 function redact_context(array $context): array
@@ -79,7 +75,6 @@ function redact_context(array $context): array
 
 function app_log(string $level, string $message, array $context = []): void
 {
-    ensure_storage();
     $record = [
         'ts' => now(),
         'level' => strtolower($level),
@@ -88,20 +83,28 @@ function app_log(string $level, string $message, array $context = []): void
         'context' => redact_context($context),
     ];
 
-    $line = json_encode($record, JSON_UNESCAPED_SLASHES);
-    if (!is_string($line)) {
-        return;
+    $contextJson = json_encode($record['context'], JSON_UNESCAPED_SLASHES);
+    if (!is_string($contextJson)) {
+        $contextJson = '{}';
+    }
+    if (strlen($contextJson) > MAX_LOG_LINE_BYTES) {
+        $contextJson = '{"notice":"context_truncated"}';
     }
 
-    if (strlen($line) > MAX_LOG_LINE_BYTES) {
-        $record['context'] = ['notice' => 'context_truncated'];
-        $line = json_encode($record, JSON_UNESCAPED_SLASHES);
-        if (!is_string($line)) {
-            return;
-        }
+    try {
+        ensure_database_schema();
+        $pdo = get_db();
+        $stmt = $pdo->prepare('INSERT INTO logs (ts, level, message, path, context_json) VALUES (:ts, :level, :message, :path, CAST(:context_json AS JSON))');
+        $stmt->execute([
+            ':ts' => (int) $record['ts'],
+            ':level' => (string) $record['level'],
+            ':message' => (string) $record['message'],
+            ':path' => (string) $record['path'],
+            ':context_json' => $contextJson,
+        ]);
+    } catch (Throwable $e) {
+        // Avoid recursive logging failures.
     }
-
-    @file_put_contents(LOG_DIR . '/app.log', $line . PHP_EOL, FILE_APPEND | LOCK_EX);
 }
 
 function random_delay(): void
@@ -147,47 +150,6 @@ function verify_code(string $code): bool
     return (bool) preg_match('/^[0-9]{6}$/', $code);
 }
 
-function safe_name(string $value): string
-{
-    return preg_replace('/[^a-zA-Z0-9._-]/', '_', $value);
-}
-
-function paste_path(string $code): string
-{
-    return PASTES_DIR . '/' . safe_name($code) . '.json';
-}
-
-function discussion_path(string $code): string
-{
-    return DISCUSSIONS_DIR . '/' . safe_name($code) . '.json';
-}
-
-function atomic_write_json(string $path, array $data): bool
-{
-    $tmp = $path . '.' . bin2hex(random_bytes(4)) . '.tmp';
-    $result = file_put_contents($tmp, json_encode($data, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT), LOCK_EX);
-    if ($result === false) {
-        return false;
-    }
-
-    return rename($tmp, $path);
-}
-
-function read_json_file(string $path): ?array
-{
-    if (!is_file($path)) {
-        return null;
-    }
-
-    $raw = file_get_contents($path);
-    if ($raw === false) {
-        return null;
-    }
-
-    $data = json_decode($raw, true);
-    return is_array($data) ? $data : null;
-}
-
 function now(): int
 {
     return time();
@@ -195,23 +157,58 @@ function now(): int
 
 function enforce_rate_limit(string $key): void
 {
-    ensure_storage();
     if (!isset(RATE_WINDOWS[$key])) {
         return;
     }
 
     $window = RATE_WINDOWS[$key];
-    $path = RATELIMIT_DIR . '/' . $key . '.json';
-    $record = read_json_file($path) ?? ['start' => now(), 'count' => 0];
+    $timestamp = now();
+    $count = 0;
 
-    if ((now() - (int) $record['start']) > (int) $window['seconds']) {
-        $record = ['start' => now(), 'count' => 0];
+    try {
+        ensure_database_schema();
+        $pdo = get_db();
+        $pdo->beginTransaction();
+
+        $select = $pdo->prepare('SELECT window_start, count FROM rate_limits WHERE `key` = :key FOR UPDATE');
+        $select->execute([':key' => $key]);
+        $row = $select->fetch(PDO::FETCH_ASSOC);
+
+        if (!is_array($row)) {
+            $count = 1;
+            $insert = $pdo->prepare('INSERT INTO rate_limits (`key`, window_start, count) VALUES (:key, :window_start, :count)');
+            $insert->execute([
+                ':key' => $key,
+                ':window_start' => $timestamp,
+                ':count' => $count,
+            ]);
+        } else {
+            $windowStart = (int) ($row['window_start'] ?? $timestamp);
+            $existingCount = (int) ($row['count'] ?? 0);
+
+            if (($timestamp - $windowStart) > (int) $window['seconds']) {
+                $windowStart = $timestamp;
+                $existingCount = 0;
+            }
+
+            $count = $existingCount + 1;
+            $update = $pdo->prepare('UPDATE rate_limits SET window_start = :window_start, count = :count WHERE `key` = :key');
+            $update->execute([
+                ':window_start' => $windowStart,
+                ':count' => $count,
+                ':key' => $key,
+            ]);
+        }
+
+        $pdo->commit();
+    } catch (Throwable $e) {
+        if (isset($pdo) && $pdo instanceof PDO && $pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        return;
     }
 
-    $record['count'] = ((int) $record['count']) + 1;
-    atomic_write_json($path, $record);
-
-    if ((int) $record['count'] > (int) $window['max']) {
+    if ($count > (int) $window['max']) {
         random_delay();
         json_response(['ok' => false, 'error' => 'rate_limited'], 429);
     }
@@ -219,38 +216,18 @@ function enforce_rate_limit(string $key): void
 
 function cleanup_expired_files(): void
 {
-    ensure_storage();
     $timestamp = now();
 
-    foreach (glob(PASTES_DIR . '/*.json') ?: [] as $pasteFile) {
-        $data = read_json_file($pasteFile);
-        if (!$data) {
-            @unlink($pasteFile);
-            continue;
-        }
+    try {
+        ensure_database_schema();
+        $pdo = get_db();
+        $deletePastes = $pdo->prepare('DELETE FROM pastes WHERE (expireAt > 0 AND expireAt <= :now_ts) OR (maxViews > 0 AND views >= maxViews)');
+        $deletePastes->execute([':now_ts' => $timestamp]);
 
-        $expireAt = (int) ($data['expireAt'] ?? 0);
-        $maxViews = (int) ($data['maxViews'] ?? 0);
-        $views = (int) ($data['views'] ?? 0);
-
-        if (($expireAt > 0 && $timestamp >= $expireAt) || ($maxViews > 0 && $views >= $maxViews)) {
-            @unlink($pasteFile);
-            $code = (string) ($data['code'] ?? '');
-            if ($code !== '') {
-                @unlink(discussion_path($code));
-            }
-        }
-    }
-
-    foreach (glob(RATELIMIT_DIR . '/*.json') ?: [] as $rateFile) {
-        $data = read_json_file($rateFile);
-        if (!$data) {
-            @unlink($rateFile);
-            continue;
-        }
-        if ((now() - (int) ($data['start'] ?? 0)) > (60 * 10)) {
-            @unlink($rateFile);
-        }
+        $deleteRates = $pdo->prepare('DELETE FROM rate_limits WHERE window_start < :threshold');
+        $deleteRates->execute([':threshold' => $timestamp - (60 * 10)]);
+    } catch (Throwable $e) {
+        app_log('warn', 'cleanup_sql_failed', ['message' => $e->getMessage()]);
     }
 }
 

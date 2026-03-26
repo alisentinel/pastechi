@@ -18,6 +18,8 @@ CREATE TABLE IF NOT EXISTS pastes (
     modes_discussion BOOLEAN NOT NULL DEFAULT FALSE COMMENT 'Enable E2EE discussion polling',
     modes_forensics BOOLEAN NOT NULL DEFAULT FALSE COMMENT 'Enable forensics aggregation',
     discussion_salt VARCHAR(256) NOT NULL DEFAULT '' COMMENT 'Salt for discussion message KDF',
+    requires_fragment BOOLEAN NOT NULL DEFAULT FALSE COMMENT 'Whether URL fragment key is required',
+    password_protected BOOLEAN NOT NULL DEFAULT TRUE COMMENT 'Whether password is required for decrypt',
     forensics_buckets JSON DEFAULT NULL COMMENT 'Hourly aggregated view counts',
     INSERT_TS TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UPDATE_TS TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
