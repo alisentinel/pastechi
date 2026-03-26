@@ -18,8 +18,17 @@ const qrCodeEl = document.getElementById("qrCode");
 const trackingCodeResultEl = document.getElementById("trackingCodeResult");
 const createStatusEl = document.getElementById("createStatus");
 const submitBtn = document.getElementById("submitBtn");
+const currentLang = window.__APP_LANG || "en";
 
 let contextData = { ipHash: "", serverTime: 0 };
+
+function t(key, fallback, replacements = {}) {
+    let text = window.__I18N?.[key] || fallback;
+    for (const [name, value] of Object.entries(replacements)) {
+        text = text.replace(`{${name}}`, String(value));
+    }
+    return text;
+}
 
 async function fetchContext() {
     try {
@@ -69,7 +78,10 @@ async function createEncryptedPaste({
     const maxAttempts = 8;
     for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
         const code = generateTrackingCode();
-        setStatus(`Encrypting and creating paste… attempt ${attempt}/${maxAttempts}`);
+        setStatus(t("js.create.encrypt_attempt", `Encrypting and creating paste… attempt ${attempt}/${maxAttempts}`, {
+            attempt,
+            maxAttempts,
+        }));
 
         const envelope = await encryptObject(payload, {
             code,
@@ -127,7 +139,7 @@ form?.addEventListener("submit", async (event) => {
 
     const content = document.getElementById("content").value;
     if (!content.trim()) {
-        alert("Paste content is required.");
+        alert(t("js.create.content_required", "Paste content is required."));
         return;
     }
 
@@ -145,7 +157,7 @@ form?.addEventListener("submit", async (event) => {
     let bindingHash = "";
     if (bindingType === "ip") {
         if (!contextData.ipHash) {
-            alert("IP binding unavailable right now.");
+            alert(t("js.create.ip_unavailable", "IP binding unavailable right now."));
             return;
         }
         bindingHash = contextData.ipHash;
@@ -168,7 +180,7 @@ form?.addEventListener("submit", async (event) => {
     };
 
     submitBtn.disabled = true;
-    setStatus("Preparing encryption…");
+    setStatus(t("js.create.preparing", "Preparing encryption…"));
 
     try {
         const result = await createEncryptedPaste({
@@ -191,23 +203,26 @@ form?.addEventListener("submit", async (event) => {
         });
 
         if (!result.ok) {
-            alert(result?.data?.error || "Failed to create paste.");
+            alert(result?.data?.error || t("js.create.failed_generic", "Failed to create paste."));
             logClient("error", "create:api_create_failed", { error: result?.data?.error || "unknown" });
-            setStatus("Failed to create paste.");
+            setStatus(t("js.create.failed_create", "Failed to create paste."));
             submitBtn.disabled = false;
             return;
         }
 
         const url = buildShareUrl(result.code, urlSecret);
-        shareLink.href = url;
-        shareLink.textContent = url;
+        const localizedUrl = new URL(url);
+        localizedUrl.searchParams.set("lang", currentLang);
+        const localizedShareUrl = localizedUrl.toString();
+        shareLink.href = localizedShareUrl;
+        shareLink.textContent = localizedShareUrl;
         trackingCodeResultEl.textContent = result.code;
-        renderQrCode(url);
+        renderQrCode(localizedShareUrl);
         resultBox.classList.remove("d-none");
-        setStatus("Encryption complete. Paste is ready.");
+        setStatus(t("js.create.encryption_complete", "Encryption complete. Paste is ready."));
         logClient("info", "create:paste_created", { discussion, forensics });
     } catch (error) {
-        const message = error?.message || "Unexpected error while creating paste.";
+        const message = error?.message || t("js.create.unexpected_error", "Unexpected error while creating paste.");
         alert(message);
         console.error(error);
         logClient("error", "create:unexpected_error", {

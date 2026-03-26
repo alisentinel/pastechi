@@ -28,6 +28,14 @@ let discussionParams = null;
 let currentPassword = "";
 let decryptedPayload = null;
 
+function t(key, fallback, replacements = {}) {
+    let text = window.__I18N?.[key] || fallback;
+    for (const [name, value] of Object.entries(replacements)) {
+        text = text.replace(`{${name}}`, String(value));
+    }
+    return text;
+}
+
 function requiresFragment() {
     return Boolean(pasteData?.access?.requiresFragment ?? false);
 }
@@ -69,7 +77,7 @@ async function loadPaste() {
     const response = await fetch(`api/get.php?code=${encodeURIComponent(code)}`, { cache: "no-store" });
     const data = await response.json();
     if (!data?.ok) {
-        displayStatus("Paste unavailable or already destroyed.");
+        displayStatus(t("js.view.unavailable", "Paste unavailable or already destroyed."));
         decryptForm.classList.add("d-none");
         logClient("warn", "view:paste_unavailable", { code });
         return;
@@ -79,7 +87,7 @@ async function loadPaste() {
 
     if (isLocked(data.lockUntil, contextData.serverTime || Math.floor(Date.now() / 1000))) {
         const readable = new Date(Number(data.lockUntil) * 1000).toISOString();
-        displayStatus(`Paste is time-locked until ${readable}`);
+        displayStatus(t("js.view.timelocked", `Paste is time-locked until ${readable}`, { time: readable }));
         decryptForm.classList.add("d-none");
         logClient("info", "view:paste_timelocked", { code });
         return;
@@ -88,17 +96,17 @@ async function loadPaste() {
     const needPassword = isPasswordProtected();
     const secret = resolveUrlSecret();
     if (secret === null) {
-        displayStatus("Missing key fragment in URL hash (#k=...).");
+        displayStatus(t("js.view.missing_fragment", "Missing key fragment in URL hash (#k=...)."));
         decryptForm.classList.add("d-none");
         return;
     }
 
     if (needPassword) {
-        displayStatus("Encrypted paste loaded. Enter password to decrypt.");
+        displayStatus(t("js.view.loaded_with_password", "Encrypted paste loaded. Enter password to decrypt."));
         decryptForm.classList.remove("d-none");
     } else {
         decryptForm.classList.add("d-none");
-        displayStatus("Encrypted paste loaded. Decrypting…");
+        displayStatus(t("js.view.loaded_auto", "Encrypted paste loaded. Decrypting…"));
     }
 
     if (data.modes?.forensics) {
@@ -134,7 +142,7 @@ async function verifyBinding(payload) {
 
 function renderPaste(payload) {
     decryptedPayload = payload;
-    titleEl.textContent = payload.title || "Untitled";
+    titleEl.textContent = payload.title || t("paste.untitled", "Untitled");
     outputEl.textContent = payload.content || "";
     contentCard.classList.remove("d-none");
 }
@@ -158,13 +166,13 @@ async function attemptDecrypt(password) {
 
         const bindingMatches = await verifyBinding(payload);
         if (!bindingMatches) {
-            displayStatus("This paste is bound to a different client context.");
+            displayStatus(t("js.view.binding_mismatch", "This paste is bound to a different client context."));
             logClient("warn", "view:binding_mismatch", { code });
             return;
         }
 
         currentPassword = password;
-        displayStatus("Decryption successful.");
+        displayStatus(t("js.view.decrypt_success", "Decryption successful."));
         renderPaste(payload);
         logClient("info", "view:decrypt_success", { code, hasDiscussion: Boolean(pasteData.modes?.discussion) });
 
@@ -181,9 +189,9 @@ async function attemptDecrypt(password) {
         }
     } catch (_error) {
         if (isPasswordProtected()) {
-            displayStatus("Unable to decrypt. Check password and link fragment.");
+            displayStatus(t("js.view.decrypt_failed_password", "Unable to decrypt. Check password and link fragment."));
         } else {
-            displayStatus("Unable to decrypt. The link key may be missing or invalid.");
+            displayStatus(t("js.view.decrypt_failed_fragment", "Unable to decrypt. The link key may be missing or invalid."));
         }
         logClient("warn", "view:decrypt_failed", { code });
     }
@@ -205,7 +213,7 @@ async function loadDiscussion() {
             try {
                 const plaintext = await decryptDiscussionMessage(message, discussionParams);
                 const row = document.createElement("div");
-                row.className = "border rounded p-2 bg-dark text-light";
+                row.className = "border rounded p-2 bg-body-tertiary";
                 row.textContent = plaintext;
                 discussionList.appendChild(row);
                 discussionCursor = Math.max(discussionCursor, Number(message.id || 0));
