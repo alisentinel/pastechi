@@ -16,11 +16,18 @@ require_once __DIR__ . '/lib/i18n.php';
 <body class="text-light" data-theme="dark">
 <main class="container py-5 app-wrap">
     <div class="app-nav">
-        <a class="text-decoration-none text-reset fw-semibold" href="<?= htmlspecialchars(app_lang_url('index.php'), ENT_QUOTES, 'UTF-8') ?>"><?= APP_NAME ?></a>
+        <a class="text-decoration-none text-reset app-brand" href="<?= htmlspecialchars(app_lang_url('index.php'), ENT_QUOTES, 'UTF-8') ?>"><?= APP_NAME ?></a>
         <div class="app-nav-controls">
-            <a class="btn btn-sm btn-outline-secondary" href="<?= htmlspecialchars(app_url('create.php?lang=en'), ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars(t('ui.lang.en'), ENT_QUOTES, 'UTF-8') ?></a>
-            <a class="btn btn-sm btn-outline-secondary" href="<?= htmlspecialchars(app_url('create.php?lang=fa'), ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars(t('ui.lang.fa'), ENT_QUOTES, 'UTF-8') ?></a>
-            <button id="themeToggle" type="button" class="btn btn-sm btn-outline-secondary" data-day-label="<?= htmlspecialchars(t('ui.theme.day'), ENT_QUOTES, 'UTF-8') ?>" data-night-label="<?= htmlspecialchars(t('ui.theme.night'), ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars(t('ui.theme.day'), ENT_QUOTES, 'UTF-8') ?></button>
+            <div class="dropdown">
+                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="langDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                    <?= htmlspecialchars(t('ui.lang'), ENT_QUOTES, 'UTF-8') ?>
+                </button>
+                <ul class="dropdown-menu" aria-labelledby="langDropdown">
+                    <li><a class="dropdown-item" href="<?= htmlspecialchars(app_url('create.php?lang=en'), ENT_QUOTES, 'UTF-8') ?>">English</a></li>
+                    <li><a class="dropdown-item" href="<?= htmlspecialchars(app_url('create.php?lang=fa'), ENT_QUOTES, 'UTF-8') ?>">فارسی</a></li>
+                </ul>
+            </div>
+            <button id="themeToggle" type="button" class="btn btn-sm btn-outline-secondary"></button>
         </div>
     </div>
 
