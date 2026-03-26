@@ -1,0 +1,23 @@
+<?php
+declare(strict_types=1);
+
+/**
+ * Local Database Configuration (copy from db-config.php and customize)
+ * 
+ * DO NOT COMMIT THIS FILE TO VERSION CONTROL
+ * Update .gitignore to include: lib/db-config.local.php
+ */
+
+// Database type: 'mysql'
+define('DB_TYPE', 'mysql');
+
+// MySQL/MariaDB Configuration
+define('DB_HOST', 'localhost');
+define('DB_PORT', 3306);
+define('DB_NAME', 'pastechi');
+define('DB_USER', 'pastechi_user');
+define('DB_PASS', 'your-secure-password-here');
+define('DB_CHARSET', 'utf8mb4');
+
+// Connection Timeout (seconds)
+define('DB_TIMEOUT', 5);

@@ -1,0 +1,25 @@
+# Database
+lib/db-config.local.php
+
+# Environment
+.env
+.env.local
+
+# Logs
+storage/logs/
+
+# Pastes and discussions (local testing data)
+storage/pastes/
+storage/discussions/
+storage/ratelimit/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db

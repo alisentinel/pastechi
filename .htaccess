@@ -1,0 +1,8 @@
+Options -Indexes
+
+RewriteEngine On
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+RewriteRule ^([0-9]{6})$ paste.php?code=$1 [L,QSA]

@@ -1,0 +1,38 @@
+:root {
+    color-scheme: dark;
+}
+
+body {
+    min-height: 100vh;
+    background: #0f172a;
+}
+
+.app-wrap {
+    max-width: 920px;
+}
+
+.mono {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    letter-spacing: 0.08em;
+}
+
+#content {
+    min-height: 360px;
+    resize: vertical;
+}
+
+#pasteOutput {
+    white-space: pre-wrap;
+    line-height: 1.55;
+}
+
+.link-box {
+    word-break: break-all;
+}
+
+.qr-wrap canvas,
+.qr-wrap img {
+    display: block;
+    margin: 0 auto;
+    max-width: 100%;
+}

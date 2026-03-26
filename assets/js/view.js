@@ -1,0 +1,254 @@
+import {
+    decryptDiscussionMessage,
+    decryptObject,
+    encryptDiscussionMessage,
+    fingerprintHash,
+    parseUrlSecret,
+} from "./crypto.js?v=20260327e";
+import { installGlobalClientErrorLogging, logClient } from "./logger.js?v=20260327e";
+
+const code = document.body.dataset.code || "";
+const statusEl = document.getElementById("status");
+const decryptForm = document.getElementById("decryptForm");
+const passwordInput = document.getElementById("password");
+const titleEl = document.getElementById("pasteTitle");
+const outputEl = document.getElementById("pasteOutput");
+const contentCard = document.getElementById("contentCard");
+const forensicCard = document.getElementById("forensicsCard");
+const forensicOutput = document.getElementById("forensicsOutput");
+const discussionCard = document.getElementById("discussionCard");
+const discussionList = document.getElementById("discussionList");
+const discussionForm = document.getElementById("discussionForm");
+const discussionInput = document.getElementById("discussionInput");
+
+let pasteData = null;
+let contextData = { ipHash: "" };
+let discussionCursor = 0;
+let discussionParams = null;
+let currentPassword = "";
+let decryptedPayload = null;
+
+function requiresFragment() {
+    return Boolean(pasteData?.access?.requiresFragment ?? false);
+}
+
+function isPasswordProtected() {
+    return Boolean(pasteData?.access?.passwordProtected ?? true);
+}
+
+function resolveUrlSecret() {
+    const secret = parseUrlSecret();
+    if (requiresFragment() && !secret) {
+        return null;
+    }
+    return secret || "";
+}
+
+async function fetchContext() {
+    try {
+        const response = await fetch("api/context.php", { cache: "no-store" });
+        const data = await response.json();
+        if (data?.ok) {
+            contextData = data;
+        }
+    } catch (_error) {
+        contextData = { ipHash: "" };
+        logClient("warn", "view:context_fetch_failed", { code });
+    }
+}
+
+function displayStatus(text) {
+    statusEl.textContent = text;
+}
+
+function isLocked(lockUntil, serverTime) {
+    return Number(lockUntil || 0) > Number(serverTime || 0);
+}
+
+async function loadPaste() {
+    const response = await fetch(`api/get.php?code=${encodeURIComponent(code)}`, { cache: "no-store" });
+    const data = await response.json();
+    if (!data?.ok) {
+        displayStatus("Paste unavailable or already destroyed.");
+        decryptForm.classList.add("d-none");
+        logClient("warn", "view:paste_unavailable", { code });
+        return;
+    }
+
+    pasteData = data;
+
+    if (isLocked(data.lockUntil, contextData.serverTime || Math.floor(Date.now() / 1000))) {
+        const readable = new Date(Number(data.lockUntil) * 1000).toISOString();
+        displayStatus(`Paste is time-locked until ${readable}`);
+        decryptForm.classList.add("d-none");
+        logClient("info", "view:paste_timelocked", { code });
+        return;
+    }
+
+    const needPassword = isPasswordProtected();
+    const secret = resolveUrlSecret();
+    if (secret === null) {
+        displayStatus("Missing key fragment in URL hash (#k=...).");
+        decryptForm.classList.add("d-none");
+        return;
+    }
+
+    if (needPassword) {
+        displayStatus("Encrypted paste loaded. Enter password to decrypt.");
+        decryptForm.classList.remove("d-none");
+    } else {
+        decryptForm.classList.add("d-none");
+        displayStatus("Encrypted paste loaded. Decrypting…");
+    }
+
+    if (data.modes?.forensics) {
+        forensicCard.classList.remove("d-none");
+        forensicOutput.textContent = JSON.stringify(data.forensics || {}, null, 2);
+    }
+
+    if (!needPassword) {
+        await attemptDecrypt("");
+    }
+}
+
+async function bindingHashByType(type) {
+    if (type === "ip") {
+        return contextData.ipHash || "";
+    }
+    if (type === "fingerprint") {
+        return fingerprintHash();
+    }
+    return "";
+}
+
+async function verifyBinding(payload) {
+    const expectedType = payload?.binding?.type || "none";
+    const expectedHash = payload?.binding?.hash || "";
+    if (expectedType === "none") {
+        return true;
+    }
+
+    const actualHash = await bindingHashByType(expectedType);
+    return expectedHash !== "" && expectedHash === actualHash;
+}
+
+function renderPaste(payload) {
+    decryptedPayload = payload;
+    titleEl.textContent = payload.title || "Untitled";
+    outputEl.textContent = payload.content || "";
+    contentCard.classList.remove("d-none");
+}
+
+async function attemptDecrypt(password) {
+    if (!pasteData) {
+        return;
+    }
+
+    const urlSecret = resolveUrlSecret();
+    if (urlSecret === null) {
+        return;
+    }
+
+    try {
+        const payload = await decryptObject(pasteData.envelope, {
+            code,
+            password,
+            urlSecret,
+        });
+
+        const bindingMatches = await verifyBinding(payload);
+        if (!bindingMatches) {
+            displayStatus("This paste is bound to a different client context.");
+            logClient("warn", "view:binding_mismatch", { code });
+            return;
+        }
+
+        currentPassword = password;
+        displayStatus("Decryption successful.");
+        renderPaste(payload);
+        logClient("info", "view:decrypt_success", { code, hasDiscussion: Boolean(pasteData.modes?.discussion) });
+
+        if (pasteData.modes?.discussion) {
+            discussionCard.classList.remove("d-none");
+            discussionParams = {
+                code,
+                password: currentPassword,
+                urlSecret,
+                discussionSalt: pasteData.discussion?.salt || "",
+                kdfIterations: Number(pasteData.envelope?.kdfIterations || 260000),
+            };
+            startDiscussionPolling();
+        }
+    } catch (_error) {
+        if (isPasswordProtected()) {
+            displayStatus("Unable to decrypt. Check password and link fragment.");
+        } else {
+            displayStatus("Unable to decrypt. The link key may be missing or invalid.");
+        }
+        logClient("warn", "view:decrypt_failed", { code });
+    }
+}
+
+async function loadDiscussion() {
+    if (!discussionParams) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`api/discussion.php?code=${encodeURIComponent(code)}&since=${discussionCursor}`, { cache: "no-store" });
+        const data = await response.json();
+        if (!data?.ok || !Array.isArray(data.messages)) {
+            return;
+        }
+
+        for (const message of data.messages) {
+            try {
+                const plaintext = await decryptDiscussionMessage(message, discussionParams);
+                const row = document.createElement("div");
+                row.className = "border rounded p-2 bg-dark text-light";
+                row.textContent = plaintext;
+                discussionList.appendChild(row);
+                discussionCursor = Math.max(discussionCursor, Number(message.id || 0));
+            } catch (_error) {
+            }
+        }
+    } catch (_error) {
+    }
+}
+
+function startDiscussionPolling() {
+    loadDiscussion();
+    window.setInterval(loadDiscussion, 4000);
+}
+
+discussionForm?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const text = discussionInput.value.trim();
+    if (!text || !discussionParams) {
+        return;
+    }
+
+    const envelope = await encryptDiscussionMessage(text, discussionParams);
+    const response = await fetch(`api/discussion.php?code=${encodeURIComponent(code)}`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ envelope }),
+    });
+    const data = await response.json();
+    if (data?.ok) {
+        discussionInput.value = "";
+        await loadDiscussion();
+    } else {
+        logClient("warn", "view:discussion_post_failed", { code });
+    }
+});
+
+decryptForm?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    await attemptDecrypt(passwordInput.value || "");
+});
+
+installGlobalClientErrorLogging("view");
+fetchContext().then(loadPaste);
