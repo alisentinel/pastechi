@@ -16,7 +16,7 @@ require_once __DIR__ . '/lib/i18n.php';
 <body class="text-light" data-theme="dark">
 <main class="container py-5 app-wrap">
     <div class="app-nav">
-        <a class="text-decoration-none text-reset app-brand" href="<?= htmlspecialchars(app_lang_url('index.php'), ENT_QUOTES, 'UTF-8') ?>"><?= APP_NAME ?></a>
+        <a class="text-decoration-none app-brand" href="<?= htmlspecialchars(app_lang_url('index.php'), ENT_QUOTES, 'UTF-8') ?>"><?= APP_NAME ?></a>
         <div class="app-nav-controls">
             <div class="dropdown">
                 <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="langDropdown" data-bs-toggle="dropdown" aria-expanded="false">
