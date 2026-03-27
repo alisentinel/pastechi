@@ -87,6 +87,7 @@ require_once __DIR__ . '/lib/i18n.php';
                                     <input id="useFragmentKey" class="form-check-input" type="checkbox">
                                     <label for="useFragmentKey" class="form-check-label"><?= htmlspecialchars(t('create.fragment_label'), ENT_QUOTES, 'UTF-8') ?></label>
                                 </div>
+                                <div class="form-text text-secondary"><?= htmlspecialchars(t('create.fragment_hint'), ENT_QUOTES, 'UTF-8') ?></div>
                             </div>
 
                             <div class="col-12 col-md-6">
