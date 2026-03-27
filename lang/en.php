@@ -37,7 +37,7 @@ return [
     'create.views_label' => 'Destroy after views (0 = unlimited)',
     'create.unique_views_label' => 'Count unique viewers only',
     'create.unique_views_hint' => 'Uses a browser cookie to avoid counting repeated opens by the same viewer.',
-    'create.fragment_label' => 'Use URL fragment key (recommended)',
+    'create.fragment_label' => 'Use URL fragment key (More secure - requires sharing the link with fragment directly)',
     'create.timelock_label' => 'Time-lock until',
     'create.binding_label' => 'Link binding',
     'create.binding.none' => 'None',

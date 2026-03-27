@@ -37,7 +37,7 @@ return [
     'create.views_label' => 'حذف پس از تعداد بازدید (۰ = نامحدود)',
     'create.unique_views_label' => 'فقط بازدیدکننده‌های یکتا شمرده شوند',
     'create.unique_views_hint' => 'برای جلوگیری از شمارش بازکردن‌های تکراری توسط یک مرورگر، از کوکی استفاده می‌شود.',
-    'create.fragment_label' => 'استفاده از کلید قطعه URL (پیشنهادی)',
+    'create.fragment_label' => 'استفاده از کلید قطعه URL (امنیت بالاتر-نیازمند اشتراک‌گذاری مستقیم لینک)',
     'create.timelock_label' => 'قفل زمانی تا',
     'create.binding_label' => 'اتصال لینک',
     'create.binding.none' => 'هیچ‌کدام',
