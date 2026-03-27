@@ -152,6 +152,7 @@ No plaintext is stored.
 	mysql -u pastechi_user -p pastechi < migrations/003_create_rate_limits_table.sql
 	mysql -u pastechi_user -p pastechi < migrations/004_create_logs_table.sql
 	mysql -u pastechi_user -p pastechi < migrations/005_add_access_columns_to_pastes.sql
+	mysql -u pastechi_user -p pastechi < migrations/006_add_unique_views_mode_to_pastes.sql
 	```
 5. Change `SERVER_PEPPER` in `lib/config.php` to a long random secret.
 6. (Optional) configure cron:
