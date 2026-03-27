@@ -23,7 +23,7 @@ if ($setupRequired) {
     <link rel="stylesheet" href="<?= htmlspecialchars(app_url('assets/css/styles.css'), ENT_QUOTES, 'UTF-8') ?>">
 </head>
 <body class="text-light" data-theme="dark">
-<main class="container py-5 app-wrap">
+<main class="container app-wrap min-vh-100 py-3 d-flex flex-column">
     <div class="app-nav">
         <div class="app-brand"><?= APP_NAME ?></div>
         <div class="app-nav-controls">
@@ -40,27 +40,29 @@ if ($setupRequired) {
         </div>
     </div>
 
-    <div class="card pane bg-dark-subtle border-secondary-subtle shadow-sm">
-        <div class="card-body p-4 p-md-5">
-            <h1 class="h3 mb-2"><?= APP_NAME ?></h1>
-            <p class="text-secondary mb-4"><?= htmlspecialchars(t('app.tagline'), ENT_QUOTES, 'UTF-8') ?></p>
+    <div class="flex-grow-1 d-flex align-items-center">
+        <div class="card pane bg-dark-subtle border-secondary-subtle shadow-sm w-100">
+            <div class="card-body p-4 p-md-5">
+                <h1 class="h3 mb-2"><?= APP_NAME ?></h1>
+                <p class="text-secondary mb-4"><?= htmlspecialchars(t('app.tagline'), ENT_QUOTES, 'UTF-8') ?></p>
 
-            <?php if (!$dbConnected): ?>
-                <div class="alert alert-warning" role="alert">
-                    <?= htmlspecialchars(t('home.db_failed'), ENT_QUOTES, 'UTF-8') ?> <a href="<?= htmlspecialchars(app_lang_url('install.php'), ENT_QUOTES, 'UTF-8') ?>" class="alert-link"><?= htmlspecialchars(t('home.installer'), ENT_QUOTES, 'UTF-8') ?></a>.
-                </div>
-            <?php endif; ?>
+                <?php if (!$dbConnected): ?>
+                    <div class="alert alert-warning" role="alert">
+                        <?= htmlspecialchars(t('home.db_failed'), ENT_QUOTES, 'UTF-8') ?> <a href="<?= htmlspecialchars(app_lang_url('install.php'), ENT_QUOTES, 'UTF-8') ?>" class="alert-link"><?= htmlspecialchars(t('home.installer'), ENT_QUOTES, 'UTF-8') ?></a>.
+                    </div>
+                <?php endif; ?>
 
-            <div class="row g-3 align-items-end">
-                <div class="col-12 col-md-8">
-                    <label for="codeInput" class="form-label"><?= htmlspecialchars(t('home.open_label'), ENT_QUOTES, 'UTF-8') ?></label>
-                    <form id="findForm" class="input-group">
-                        <input id="codeInput" class="form-control mono" type="text" maxlength="6" minlength="6" pattern="[0-9]{6}" inputmode="numeric" placeholder="123456" required>
-                        <button type="submit" class="btn btn-primary"><?= htmlspecialchars(t('home.open_button'), ENT_QUOTES, 'UTF-8') ?></button>
-                    </form>
-                </div>
-                <div class="col-12 col-md-4 d-grid">
-                    <button id="createBtn" class="btn btn-outline-light" type="button"><?= htmlspecialchars(t('home.create_button'), ENT_QUOTES, 'UTF-8') ?></button>
+                <div class="row g-3 align-items-end">
+                    <div class="col-12 col-md-8">
+                        <label for="codeInput" class="form-label"><?= htmlspecialchars(t('home.open_label'), ENT_QUOTES, 'UTF-8') ?></label>
+                        <form id="findForm" class="input-group">
+                            <input id="codeInput" class="form-control mono" type="text" maxlength="6" minlength="6" pattern="[0-9]{6}" inputmode="numeric" placeholder="123456" required>
+                            <button type="submit" class="btn btn-primary"><?= htmlspecialchars(t('home.open_button'), ENT_QUOTES, 'UTF-8') ?></button>
+                        </form>
+                    </div>
+                    <div class="col-12 col-md-4 d-grid">
+                        <button id="createBtn" class="btn btn-outline-light" type="button"><?= htmlspecialchars(t('home.create_button'), ENT_QUOTES, 'UTF-8') ?></button>
+                    </div>
                 </div>
             </div>
         </div>
