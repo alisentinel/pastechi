@@ -18,7 +18,7 @@ All encryption and decryption happen in the browser via Web Crypto API.
 - Expiry controls:
 	- TTL destroy-after-time
 	- destroy-after-X-views
-	- burn-after-read strict mode
+	- optional unique-viewer counting mode (cookie-based)
 - Time-lock support (client-enforced decryption gate)
 - Optional link binding:
 	- hashed IP prefix binding
@@ -112,7 +112,7 @@ No plaintext is stored.
 - `GET /api/get.php?code=123456`
 	- Returns encrypted envelope and public metadata
 	- Increments view count atomically
-	- Handles burn-after-read / max-view deletion
+	- Handles max-view deletion (including unique-view mode)
 - `GET /api/discussion.php?code=123456&since=<id>`
 	- Returns encrypted discussion messages
 - `POST /api/discussion.php?code=123456`

@@ -31,6 +31,7 @@ try {
     $expireAt = (int) ($record['expireAt'] ?? 0);
     $maxViews = (int) ($record['maxViews'] ?? 0);
     $views = (int) ($record['views'] ?? 0);
+    $uniqueViewsOnly = (bool) ($record['uniqueViewsOnly'] ?? false);
 
     if (($expireAt > 0 && $timestamp >= $expireAt) || ($maxViews > 0 && $views >= $maxViews)) {
         $delete = $pdo->prepare('DELETE FROM pastes WHERE code = :code');
@@ -40,7 +41,10 @@ try {
         json_response(['ok' => false, 'error' => 'unavailable'], 404);
     }
 
-    $views += 1;
+    $viewerCookieKey = 'pastechi_uv_' . $code;
+    $viewerAlreadyCounted = $uniqueViewsOnly && (($_COOKIE[$viewerCookieKey] ?? '') === '1');
+    $countThisView = !$uniqueViewsOnly || !$viewerAlreadyCounted;
+
     $forensicsBuckets = [];
     $forensicsEnabled = (bool) ($record['modes_forensics'] ?? false);
     if ($forensicsEnabled) {
@@ -48,16 +52,32 @@ try {
         if (is_array($decoded)) {
             $forensicsBuckets = $decoded;
         }
-        $bucket = (string) forensic_bucket($timestamp);
-        $forensicsBuckets[$bucket] = ((int) ($forensicsBuckets[$bucket] ?? 0)) + 1;
     }
 
-    $update = $pdo->prepare('UPDATE pastes SET views = :views, forensics_buckets = CAST(:forensics_buckets AS JSON) WHERE code = :code');
-    $update->execute([
-        ':views' => $views,
-        ':forensics_buckets' => json_encode($forensicsBuckets, JSON_UNESCAPED_SLASHES),
-        ':code' => $code,
-    ]);
+    if ($countThisView) {
+        $views += 1;
+        if ($forensicsEnabled) {
+            $bucket = (string) forensic_bucket($timestamp);
+            $forensicsBuckets[$bucket] = ((int) ($forensicsBuckets[$bucket] ?? 0)) + 1;
+        }
+
+        $update = $pdo->prepare('UPDATE pastes SET views = :views, forensics_buckets = CAST(:forensics_buckets AS JSON) WHERE code = :code');
+        $update->execute([
+            ':views' => $views,
+            ':forensics_buckets' => json_encode($forensicsBuckets, JSON_UNESCAPED_SLASHES),
+            ':code' => $code,
+        ]);
+    }
+
+    if ($uniqueViewsOnly && !$viewerAlreadyCounted) {
+        setcookie($viewerCookieKey, '1', [
+            'expires' => $timestamp + (60 * 60 * 24 * 365),
+            'path' => app_base_path() !== '' ? app_base_path() : '/',
+            'secure' => !empty($_SERVER['HTTPS']) && strtolower((string) $_SERVER['HTTPS']) !== 'off',
+            'httponly' => true,
+            'samesite' => 'Lax',
+        ]);
+    }
 
     $response = [
         'ok' => true,
@@ -86,6 +106,7 @@ try {
         ],
         'views' => $views,
         'maxViews' => $maxViews,
+        'uniqueViewsOnly' => $uniqueViewsOnly,
         'expireAt' => $expireAt,
     ];
 

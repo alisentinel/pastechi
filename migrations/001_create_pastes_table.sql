@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS pastes (
     views INT NOT NULL DEFAULT 0 COMMENT 'Current view count',
     maxViews INT NOT NULL DEFAULT 0 COMMENT 'Max views before deletion (0 = unlimited)',
     burnAfterRead BOOLEAN NOT NULL DEFAULT FALSE COMMENT 'Delete after first view',
+    uniqueViewsOnly BOOLEAN NOT NULL DEFAULT FALSE COMMENT 'Count only unique viewers using cookie markers',
     lockUntil BIGINT NOT NULL DEFAULT 0 COMMENT 'Unix timestamp for time-lock gate',
     binding_type VARCHAR(32) NOT NULL DEFAULT 'none' COMMENT 'none|ip|fingerprint',
     binding_hash VARCHAR(256) NOT NULL DEFAULT '' COMMENT 'Optional binding hash (empty string = not persisted)',

@@ -68,8 +68,12 @@ if ($attachmentMetaInput !== null) {
 $ttlSeconds = normalize_ttl(isset($input['ttlSeconds']) ? (int) $input['ttlSeconds'] : 0);
 $maxViews = max(0, (int) ($input['maxViews'] ?? 0));
 $burnAfterRead = (bool) ($input['burnAfterRead'] ?? false);
-if ($burnAfterRead) {
+if ($burnAfterRead && $maxViews === 0) {
     $maxViews = 1;
+}
+$uniqueViewsOnly = (bool) ($input['uniqueViewsOnly'] ?? false);
+if ($maxViews === 0) {
+    $uniqueViewsOnly = false;
 }
 
 $lockUntil = max(0, (int) ($input['lockUntil'] ?? 0));
@@ -113,6 +117,7 @@ try {
         views,
         maxViews,
         burnAfterRead,
+        uniqueViewsOnly,
         lockUntil,
         binding_type,
         binding_hash,
@@ -133,6 +138,7 @@ try {
         :views,
         :maxViews,
         :burnAfterRead,
+        :uniqueViewsOnly,
         :lockUntil,
         :binding_type,
         :binding_hash,
@@ -154,7 +160,8 @@ try {
         ':expireAt' => $expireAt,
         ':views' => 0,
         ':maxViews' => $maxViews,
-        ':burnAfterRead' => $burnAfterRead ? 1 : 0,
+        ':burnAfterRead' => 0,
+        ':uniqueViewsOnly' => $uniqueViewsOnly ? 1 : 0,
         ':lockUntil' => $lockUntil,
         ':binding_type' => $type,
         ':binding_hash' => '',
@@ -180,7 +187,8 @@ app_log('info', 'paste_created', [
     'code' => $code,
     'ttlSeconds' => $ttlSeconds,
     'maxViews' => $maxViews,
-    'burnAfterRead' => $burnAfterRead,
+    'burnAfterRead' => false,
+    'uniqueViewsOnly' => $uniqueViewsOnly,
     'discussion' => $discussionEnabled,
     'forensics' => $forensicsEnabled,
 ]);

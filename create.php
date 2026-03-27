@@ -76,9 +76,10 @@ require_once __DIR__ . '/lib/i18n.php';
 
                             <div class="col-12">
                                 <div class="form-check">
-                                    <input id="burnAfterRead" class="form-check-input" type="checkbox">
-                                    <label for="burnAfterRead" class="form-check-label"><?= htmlspecialchars(t('create.burn_label'), ENT_QUOTES, 'UTF-8') ?></label>
+                                    <input id="uniqueViewsOnly" class="form-check-input" type="checkbox">
+                                    <label for="uniqueViewsOnly" class="form-check-label"><?= htmlspecialchars(t('create.unique_views_label'), ENT_QUOTES, 'UTF-8') ?></label>
                                 </div>
+                                <div class="form-text text-secondary"><?= htmlspecialchars(t('create.unique_views_hint'), ENT_QUOTES, 'UTF-8') ?></div>
                             </div>
 
                             <div class="col-12">
@@ -165,7 +166,7 @@ window.__ATTACHMENT_POLICY = <?= json_encode([
 ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
 </script>
 <script type="module" src="<?= htmlspecialchars(app_url('assets/js/ui.js?v=20260327a'), ENT_QUOTES, 'UTF-8') ?>"></script>
-<script type="module" src="<?= htmlspecialchars(app_url('assets/js/create.js?v=20260327g'), ENT_QUOTES, 'UTF-8') ?>"></script>
+<script type="module" src="<?= htmlspecialchars(app_url('assets/js/create.js?v=20260327h'), ENT_QUOTES, 'UTF-8') ?>"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 </body>
 </html>

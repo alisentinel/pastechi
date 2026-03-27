@@ -174,6 +174,7 @@ function ensure_database_schema(): void
         views INT NOT NULL DEFAULT 0,
         maxViews INT NOT NULL DEFAULT 0,
         burnAfterRead BOOLEAN NOT NULL DEFAULT FALSE,
+        uniqueViewsOnly BOOLEAN NOT NULL DEFAULT FALSE,
         lockUntil BIGINT NOT NULL DEFAULT 0,
         binding_type VARCHAR(32) NOT NULL DEFAULT 'none',
         binding_hash VARCHAR(256) NOT NULL DEFAULT '',

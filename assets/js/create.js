@@ -75,7 +75,7 @@ async function createEncryptedPaste({
     kdfIterations,
     ttlSeconds,
     maxViews,
-    burnAfterRead,
+    uniqueViewsOnly,
     lockUntil,
     bindingType,
     bindingHash,
@@ -108,7 +108,7 @@ async function createEncryptedPaste({
                 envelope,
                 ttlSeconds,
                 maxViews,
-                burnAfterRead,
+                uniqueViewsOnly,
                 lockUntil,
                 binding: {
                     type: bindingType,
@@ -246,7 +246,7 @@ form?.addEventListener("submit", async (event) => {
     const password = document.getElementById("password").value || "";
     const ttlSeconds = Number(document.getElementById("ttlSeconds").value || "0");
     const maxViews = Number(document.getElementById("maxViews").value || "0");
-    const burnAfterRead = document.getElementById("burnAfterRead").checked;
+    const uniqueViewsOnly = document.getElementById("uniqueViewsOnly").checked;
     const lockUntil = parseTimeLock(document.getElementById("timeLock").value || "");
     const bindingType = document.getElementById("bindingType").value;
     const discussion = document.getElementById("discussionMode").checked;
@@ -304,7 +304,7 @@ form?.addEventListener("submit", async (event) => {
             kdfIterations,
             ttlSeconds,
             maxViews,
-            burnAfterRead,
+            uniqueViewsOnly,
             lockUntil,
             bindingType,
             bindingHash,
