@@ -49,6 +49,7 @@ return [
     'create.submit' => 'Encrypt & Create',
     'create.result_title' => 'Paste ready',
     'create.tracking' => 'Tracking code',
+    'create.new_one' => 'Create new one',
 
     'paste.loading' => 'Loading encrypted payload…',
     'paste.decrypt' => 'Decrypt',

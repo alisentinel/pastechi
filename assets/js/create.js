@@ -13,12 +13,14 @@ import { installGlobalClientErrorLogging, logClient } from "./logger.js?v=202603
 window.__createModuleLoaded = true;
 
 const form = document.getElementById("createForm");
+const createPane = document.getElementById("createPane");
 const resultBox = document.getElementById("resultBox");
 const shareLink = document.getElementById("shareLink");
 const qrCodeEl = document.getElementById("qrCode");
 const trackingCodeResultEl = document.getElementById("trackingCodeResult");
 const createStatusEl = document.getElementById("createStatus");
 const submitBtn = document.getElementById("submitBtn");
+const createAnotherBtn = document.getElementById("createAnotherBtn");
 const attachmentInput = document.getElementById("attachment");
 const attachmentPolicyHint = document.getElementById("attachmentPolicyHint");
 const currentLang = window.__APP_LANG || "en";
@@ -65,6 +67,16 @@ function renderQrCode(url) {
         height: 200,
         correctLevel: window.QRCode.CorrectLevel.M,
     });
+}
+
+function showCreateForm() {
+    createPane?.classList.remove("d-none");
+    resultBox?.classList.add("d-none");
+}
+
+function showCreateResult() {
+    createPane?.classList.add("d-none");
+    resultBox?.classList.remove("d-none");
 }
 
 async function createEncryptedPaste({
@@ -332,7 +344,7 @@ form?.addEventListener("submit", async (event) => {
         shareLink.textContent = localizedShareUrl;
         trackingCodeResultEl.textContent = result.code;
         renderQrCode(localizedShareUrl);
-        resultBox.classList.remove("d-none");
+        showCreateResult();
         setStatus(t("js.create.encryption_complete", "Encryption complete. Paste is ready."));
         logClient("info", "create:paste_created", { discussion, forensics });
     } catch (error) {
@@ -351,3 +363,15 @@ form?.addEventListener("submit", async (event) => {
 installGlobalClientErrorLogging("create");
 fetchContext();
 renderAttachmentPolicyHint();
+
+createAnotherBtn?.addEventListener("click", () => {
+    form?.reset();
+    setStatus("");
+    submitBtn.disabled = false;
+    shareLink.href = "#";
+    shareLink.textContent = "";
+    trackingCodeResultEl.textContent = "";
+    qrCodeEl.innerHTML = "";
+    showCreateForm();
+    document.getElementById("content")?.focus();
+});

@@ -49,6 +49,7 @@ return [
     'create.submit' => 'رمزنگاری و ایجاد',
     'create.result_title' => 'پیست آماده است',
     'create.tracking' => 'کد رهگیری',
+    'create.new_one' => 'ایجاد پیست جدید',
 
     'paste.loading' => 'در حال بارگذاری محتوای رمزنگاری‌شده…',
     'paste.decrypt' => 'رمزگشایی',

@@ -31,7 +31,7 @@ require_once __DIR__ . '/lib/i18n.php';
         </div>
     </div>
 
-    <div class="card pane bg-dark-subtle border-secondary-subtle shadow-sm">
+    <div id="createPane" class="card pane bg-dark-subtle border-secondary-subtle shadow-sm">
         <div class="card-body p-4 p-md-5">
             <h1 class="h3 mb-3"><?= htmlspecialchars(t('create.title'), ENT_QUOTES, 'UTF-8') ?></h1>
 
@@ -132,6 +132,9 @@ require_once __DIR__ . '/lib/i18n.php';
             <p class="mb-2"><?= htmlspecialchars(t('create.tracking'), ENT_QUOTES, 'UTF-8') ?>: <strong id="trackingCodeResult" class="mono"></strong></p>
             <p class="mb-2"><a id="shareLink" class="link-box" href="#"></a></p>
             <div id="qrCode" class="qr-wrap border rounded bg-white p-3 d-inline-block"></div>
+            <div class="mt-4">
+                <button id="createAnotherBtn" type="button" class="btn btn-outline-primary"><?= htmlspecialchars(t('create.new_one'), ENT_QUOTES, 'UTF-8') ?></button>
+            </div>
         </div>
     </section>
 </main>
@@ -167,7 +170,7 @@ window.__ATTACHMENT_POLICY = <?= json_encode([
 ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
 </script>
 <script type="module" src="<?= htmlspecialchars(app_url('assets/js/ui.js?v=20260327a'), ENT_QUOTES, 'UTF-8') ?>"></script>
-<script type="module" src="<?= htmlspecialchars(app_url('assets/js/create.js?v=20260327h'), ENT_QUOTES, 'UTF-8') ?>"></script>
+<script type="module" src="<?= htmlspecialchars(app_url('assets/js/create.js?v=20260327i'), ENT_QUOTES, 'UTF-8') ?>"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 </body>
 </html>
