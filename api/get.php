@@ -61,7 +61,7 @@ try {
             $forensicsBuckets[$bucket] = ((int) ($forensicsBuckets[$bucket] ?? 0)) + 1;
         }
 
-        $update = $pdo->prepare('UPDATE pastes SET views = :views, forensics_buckets = CAST(:forensics_buckets AS JSON) WHERE code = :code');
+        $update = $pdo->prepare('UPDATE pastes SET views = :views, forensics_buckets = :forensics_buckets WHERE code = :code');
         $update->execute([
             ':views' => $views,
             ':forensics_buckets' => json_encode($forensicsBuckets, JSON_UNESCAPED_SLASHES),

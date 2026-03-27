@@ -147,7 +147,7 @@ try {
         :discussion_salt,
         :requires_fragment,
         :password_protected,
-        CAST(:forensics_buckets AS JSON)
+        :forensics_buckets
     )');
 
     $stmt->execute([

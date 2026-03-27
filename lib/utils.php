@@ -95,7 +95,7 @@ function app_log(string $level, string $message, array $context = []): void
     try {
         ensure_database_schema();
         $pdo = get_db();
-        $stmt = $pdo->prepare('INSERT INTO logs (ts, level, message, path, context_json) VALUES (:ts, :level, :message, :path, CAST(:context_json AS JSON))');
+        $stmt = $pdo->prepare('INSERT INTO logs (ts, level, message, path, context_json) VALUES (:ts, :level, :message, :path, :context_json)');
         $stmt->execute([
             ':ts' => (int) $record['ts'],
             ':level' => (string) $record['level'],

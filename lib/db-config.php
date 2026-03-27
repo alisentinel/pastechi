@@ -154,6 +154,26 @@ function write_env_file(string $host, int $port, string $name, string $user, str
     return file_put_contents($envPath, $content, LOCK_EX) !== false;
 }
 
+function db_column_exists(PDO $pdo, string $table, string $column): bool
+{
+    $stmt = $pdo->prepare('SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = :table_name AND COLUMN_NAME = :column_name LIMIT 1');
+    $stmt->execute([
+        ':table_name' => $table,
+        ':column_name' => $column,
+    ]);
+
+    return (bool) $stmt->fetchColumn();
+}
+
+function db_add_column_if_missing(PDO $pdo, string $table, string $column, string $definition): void
+{
+    if (db_column_exists($pdo, $table, $column)) {
+        return;
+    }
+
+    $pdo->exec(sprintf('ALTER TABLE `%s` ADD COLUMN `%s` %s', $table, $column, $definition));
+}
+
 function ensure_database_schema(): void
 {
     static $initialized = false;
@@ -224,6 +244,17 @@ function ensure_database_schema(): void
         INDEX idx_level (level),
         INDEX idx_message (message)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+    db_add_column_if_missing($pdo, 'pastes', 'uniqueViewsOnly', 'BOOLEAN NOT NULL DEFAULT FALSE');
+    db_add_column_if_missing($pdo, 'pastes', 'lockUntil', 'BIGINT NOT NULL DEFAULT 0');
+    db_add_column_if_missing($pdo, 'pastes', 'binding_type', "VARCHAR(32) NOT NULL DEFAULT 'none'");
+    db_add_column_if_missing($pdo, 'pastes', 'binding_hash', "VARCHAR(256) NOT NULL DEFAULT ''");
+    db_add_column_if_missing($pdo, 'pastes', 'modes_discussion', 'BOOLEAN NOT NULL DEFAULT FALSE');
+    db_add_column_if_missing($pdo, 'pastes', 'modes_forensics', 'BOOLEAN NOT NULL DEFAULT FALSE');
+    db_add_column_if_missing($pdo, 'pastes', 'discussion_salt', "VARCHAR(256) NOT NULL DEFAULT ''");
+    db_add_column_if_missing($pdo, 'pastes', 'requires_fragment', 'BOOLEAN NOT NULL DEFAULT FALSE');
+    db_add_column_if_missing($pdo, 'pastes', 'password_protected', 'BOOLEAN NOT NULL DEFAULT TRUE');
+    db_add_column_if_missing($pdo, 'pastes', 'forensics_buckets', 'JSON DEFAULT NULL');
 
     $initialized = true;
 }
