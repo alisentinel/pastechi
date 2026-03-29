@@ -15,11 +15,7 @@ function getSubtleOrThrow() {
     const subtle = cryptoObj?.subtle || cryptoObj?.webkitSubtle;
     if (!subtle) {
         const origin = globalThis.location?.origin || "this origin";
-        const host = globalThis.location?.hostname || "";
-        const localhostHint = host !== "localhost" && host !== "127.0.0.1"
-            ? " Try opening the app via http://localhost/pastechi/"
-            : "";
-        throw new Error(`SubtleCrypto is unavailable at ${origin}. Use HTTPS or localhost in a modern browser.${localhostHint}`);
+        throw new Error(`SubtleCrypto is unavailable at ${origin}. Use HTTPS or localhost in a modern browser.`);
     }
     return subtle;
 }

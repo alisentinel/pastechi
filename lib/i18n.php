@@ -74,7 +74,7 @@ function t(string $key, array $replacements = []): string
 function app_lang_url(string $path = '', array $query = []): string
 {
     $query['lang'] = current_lang();
-    $url = app_url($path);
+    $url = app_relative_url($path);
     $qs = http_build_query($query);
     if ($qs === '') {
         return $url;

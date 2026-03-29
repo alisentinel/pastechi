@@ -23,7 +23,7 @@ if (isset($_GET['error']) && $_GET['error'] !== '') {
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><?= htmlspecialchars(t('install.title'), ENT_QUOTES, 'UTF-8') ?> · <?= APP_NAME ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
-    <link rel="stylesheet" href="<?= htmlspecialchars(app_url('assets/css/styles.css'), ENT_QUOTES, 'UTF-8') ?>">
+    <link rel="stylesheet" href="<?= htmlspecialchars(app_relative_url('assets/css/styles.css'), ENT_QUOTES, 'UTF-8') ?>">
 </head>
 <body class="text-light" data-theme="dark">
 <main class="container py-5 app-wrap">
@@ -35,8 +35,8 @@ if (isset($_GET['error']) && $_GET['error'] !== '') {
                     <?= htmlspecialchars(t('ui.lang'), ENT_QUOTES, 'UTF-8') ?>
                 </button>
                 <ul class="dropdown-menu" aria-labelledby="langDropdown">
-                    <li><a class="dropdown-item" href="<?= htmlspecialchars(app_url('install.php?lang=en'), ENT_QUOTES, 'UTF-8') ?>">English</a></li>
-                    <li><a class="dropdown-item" href="<?= htmlspecialchars(app_url('install.php?lang=fa'), ENT_QUOTES, 'UTF-8') ?>">فارسی</a></li>
+                    <li><a class="dropdown-item" href="<?= htmlspecialchars(app_relative_url('install.php?lang=en'), ENT_QUOTES, 'UTF-8') ?>">English</a></li>
+                    <li><a class="dropdown-item" href="<?= htmlspecialchars(app_relative_url('install.php?lang=fa'), ENT_QUOTES, 'UTF-8') ?>">فارسی</a></li>
                 </ul>
             </div>
             <button id="themeToggle" type="button" class="btn btn-sm btn-outline-secondary"></button>
@@ -54,7 +54,11 @@ if (isset($_GET['error']) && $_GET['error'] !== '') {
                 </div>
             <?php endif; ?>
 
-            <form method="post" action="<?= htmlspecialchars(app_url('api/install.php'), ENT_QUOTES, 'UTF-8') ?>" class="row g-3">
+            <form method="post" action="<?= htmlspecialchars(app_relative_url('api/install.php'), ENT_QUOTES, 'UTF-8') ?>" class="row g-3">
+                <div class="col-12">
+                    <label for="appName" class="form-label"><?= htmlspecialchars(t('install.site_title'), ENT_QUOTES, 'UTF-8') ?></label>
+                    <input id="appName" name="app_name" class="form-control" type="text" value="<?= htmlspecialchars((string) getenv('APP_NAME'), ENT_QUOTES, 'UTF-8') ?: 'PasteChi' ?>" required>
+                </div>
                 <div class="col-12 col-md-6">
                     <label for="dbHost" class="form-label"><?= htmlspecialchars(t('install.db_host'), ENT_QUOTES, 'UTF-8') ?></label>
                     <input id="dbHost" name="db_host" class="form-control" type="text" value="<?= htmlspecialchars((string) getenv('DB_HOST'), ENT_QUOTES, 'UTF-8') ?: 'localhost' ?>" required>
@@ -75,6 +79,19 @@ if (isset($_GET['error']) && $_GET['error'] !== '') {
                     <label for="dbPass" class="form-label"><?= htmlspecialchars(t('install.db_pass'), ENT_QUOTES, 'UTF-8') ?></label>
                     <input id="dbPass" name="db_pass" class="form-control" type="password" value="" autocomplete="new-password">
                 </div>
+                <div class="col-12 col-md-6">
+                    <label for="maxPayloadBytes" class="form-label"><?= htmlspecialchars(t('install.max_payload_bytes'), ENT_QUOTES, 'UTF-8') ?></label>
+                    <input id="maxPayloadBytes" name="max_payload_bytes" class="form-control" type="number" min="8192" step="1024" value="<?= htmlspecialchars((string) getenv('MAX_PAYLOAD_BYTES'), ENT_QUOTES, 'UTF-8') ?: '1048576' ?>" required>
+                </div>
+                <div class="col-12 col-md-6">
+                    <label for="attachmentMaxBytes" class="form-label"><?= htmlspecialchars(t('install.attachment_max_bytes'), ENT_QUOTES, 'UTF-8') ?></label>
+                    <input id="attachmentMaxBytes" name="attachment_max_bytes" class="form-control" type="number" min="0" step="1024" value="<?= htmlspecialchars((string) getenv('ATTACHMENT_MAX_BYTES'), ENT_QUOTES, 'UTF-8') ?: '5242880' ?>" required>
+                </div>
+                <div class="col-12">
+                    <label for="attachmentAllowedExtensions" class="form-label"><?= htmlspecialchars(t('install.attachment_allowed_extensions'), ENT_QUOTES, 'UTF-8') ?></label>
+                    <input id="attachmentAllowedExtensions" name="attachment_allowed_extensions" class="form-control" type="text" value="<?= htmlspecialchars((string) getenv('ATTACHMENT_ALLOWED_EXTENSIONS'), ENT_QUOTES, 'UTF-8') ?: '*' ?>" required>
+                    <div class="form-text text-secondary"><?= htmlspecialchars(t('install.attachment_extensions_hint'), ENT_QUOTES, 'UTF-8') ?></div>
+                </div>
                 <div class="col-12 d-grid mt-2">
                     <button type="submit" class="btn btn-primary"><?= htmlspecialchars(t('install.submit'), ENT_QUOTES, 'UTF-8') ?></button>
                 </div>
@@ -82,7 +99,7 @@ if (isset($_GET['error']) && $_GET['error'] !== '') {
         </div>
     </div>
 </main>
-<script type="module" src="<?= htmlspecialchars(app_url('assets/js/ui.js?v=20260327a'), ENT_QUOTES, 'UTF-8') ?>"></script>
+<script type="module" src="<?= htmlspecialchars(app_relative_url('assets/js/ui.js?v=20260327a'), ENT_QUOTES, 'UTF-8') ?>"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 </body>
 </html>

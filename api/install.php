@@ -14,8 +14,22 @@ $dbPort = (int) ($_POST['db_port'] ?? 0);
 $dbName = trim((string) ($_POST['db_name'] ?? ''));
 $dbUser = trim((string) ($_POST['db_user'] ?? ''));
 $dbPass = (string) ($_POST['db_pass'] ?? '');
+$appName = trim((string) ($_POST['app_name'] ?? ''));
+$maxPayloadBytes = (int) ($_POST['max_payload_bytes'] ?? 0);
+$attachmentMaxBytes = (int) ($_POST['attachment_max_bytes'] ?? 0);
+$attachmentAllowedExtensions = trim((string) ($_POST['attachment_allowed_extensions'] ?? '*'));
 
-if ($dbHost === '' || $dbPort < 1 || $dbPort > 65535 || $dbName === '' || $dbUser === '') {
+if (
+    $dbHost === ''
+    || $dbPort < 1
+    || $dbPort > 65535
+    || $dbName === ''
+    || $dbUser === ''
+    || $appName === ''
+    || $maxPayloadBytes < 8192
+    || $attachmentMaxBytes < 0
+    || $attachmentAllowedExtensions === ''
+) {
     header('Location: ' . app_url('install.php?error=invalid_input'));
     exit;
 }
@@ -25,7 +39,17 @@ if (!test_db_connection($dbHost, $dbPort, $dbName, $dbUser, $dbPass)) {
     exit;
 }
 
-if (!write_env_file($dbHost, $dbPort, $dbName, $dbUser, $dbPass)) {
+if (!write_env_file(
+    $dbHost,
+    $dbPort,
+    $dbName,
+    $dbUser,
+    $dbPass,
+    $appName,
+    $maxPayloadBytes,
+    $attachmentMaxBytes,
+    $attachmentAllowedExtensions
+)) {
     header('Location: ' . app_url('install.php?error=env_write_failed'));
     exit;
 }

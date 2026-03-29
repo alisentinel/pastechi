@@ -10,6 +10,9 @@ return [
     'ui.theme.toggle' => 'Night/Day',
     'ui.theme.day' => 'Day',
     'ui.theme.night' => 'Night',
+    'nav.documents' => 'Documents',
+    'nav.privacy' => 'Privacy',
+    'nav.mirror' => 'Create your mirror',
 
     'home.title' => 'Zero-knowledge paste',
     'home.open_label' => 'Open by 6-digit code',
@@ -76,6 +79,11 @@ return [
     'install.db_name' => 'DB Name',
     'install.db_user' => 'DB User',
     'install.db_pass' => 'DB Password',
+    'install.site_title' => 'Site Title',
+    'install.max_payload_bytes' => 'Max payload bytes',
+    'install.attachment_max_bytes' => 'Max attachment bytes (0 = disabled)',
+    'install.attachment_allowed_extensions' => 'Allowed attachment extensions',
+    'install.attachment_extensions_hint' => 'Use * for any extension, or comma-separated list like: txt,png,pdf',
     'install.submit' => 'Save & Test Connection',
 
     'js.home.invalid_code' => 'Enter a valid 6-digit code.',

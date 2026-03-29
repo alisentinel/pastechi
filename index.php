@@ -23,7 +23,7 @@ if ($setupRequired) {
     <title><?= APP_NAME ?> · <?= htmlspecialchars(t('home.title'), ENT_QUOTES, 'UTF-8') ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
         integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
-    <link rel="stylesheet" href="<?= htmlspecialchars(app_url('assets/css/styles.css'), ENT_QUOTES, 'UTF-8') ?>">
+    <link rel="stylesheet" href="<?= htmlspecialchars(app_relative_url('assets/css/styles.css'), ENT_QUOTES, 'UTF-8') ?>">
 </head>
 
 <body class="text-light" data-theme="dark">
@@ -38,12 +38,15 @@ if ($setupRequired) {
                     </button>
                     <ul class="dropdown-menu" aria-labelledby="langDropdown">
                         <li><a class="dropdown-item"
-                                href="<?= htmlspecialchars(app_url('?lang=en'), ENT_QUOTES, 'UTF-8') ?>">English</a>
+                                href="<?= htmlspecialchars(app_relative_url('?lang=en'), ENT_QUOTES, 'UTF-8') ?>">English</a>
                         </li>
                         <li><a class="dropdown-item"
-                                href="<?= htmlspecialchars(app_url('?lang=fa'), ENT_QUOTES, 'UTF-8') ?>">فارسی</a></li>
+                                href="<?= htmlspecialchars(app_relative_url('?lang=fa'), ENT_QUOTES, 'UTF-8') ?>">فارسی</a></li>
                     </ul>
                 </div>
+                <a class="btn btn-sm btn-outline-secondary" href="<?= htmlspecialchars(app_lang_url('documents.php'), ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars(t('nav.documents'), ENT_QUOTES, 'UTF-8') ?></a>
+                <a class="btn btn-sm btn-outline-secondary" href="<?= htmlspecialchars(app_lang_url('privacy.php'), ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars(t('nav.privacy'), ENT_QUOTES, 'UTF-8') ?></a>
+                <a class="btn btn-sm btn-outline-secondary" href="<?= htmlspecialchars(app_lang_url('mirror.php'), ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars(t('nav.mirror'), ENT_QUOTES, 'UTF-8') ?></a>
                 <button id="themeToggle" type="button" class="btn btn-sm btn-outline-secondary"></button>
             </div>
         </div>
@@ -114,9 +117,9 @@ if ($setupRequired) {
     <script>window.__I18N = <?= json_encode(i18n_messages(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;</script>
     <script>window.__APP_LANG = <?= json_encode(current_lang(), JSON_UNESCAPED_SLASHES) ?>;</script>
     <script type="module"
-        src="<?= htmlspecialchars(app_url('assets/js/ui.js?v=20260327a'), ENT_QUOTES, 'UTF-8') ?>"></script>
+        src="<?= htmlspecialchars(app_relative_url('assets/js/ui.js?v=20260327a'), ENT_QUOTES, 'UTF-8') ?>"></script>
     <script type="module"
-        src="<?= htmlspecialchars(app_url('assets/js/home.js?v=20260327c'), ENT_QUOTES, 'UTF-8') ?>"></script>
+        src="<?= htmlspecialchars(app_relative_url('assets/js/home.js?v=20260327c'), ENT_QUOTES, 'UTF-8') ?>"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
         integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
         crossorigin="anonymous"></script>

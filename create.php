@@ -11,7 +11,7 @@ require_once __DIR__ . '/lib/i18n.php';
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><?= htmlspecialchars(t('create.title'), ENT_QUOTES, 'UTF-8') ?> · <?= APP_NAME ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
-    <link rel="stylesheet" href="<?= htmlspecialchars(app_url('assets/css/styles.css'), ENT_QUOTES, 'UTF-8') ?>">
+    <link rel="stylesheet" href="<?= htmlspecialchars(app_relative_url('assets/css/styles.css'), ENT_QUOTES, 'UTF-8') ?>">
 </head>
 <body class="text-light" data-theme="dark">
 <main class="container py-5 app-wrap">
@@ -23,10 +23,13 @@ require_once __DIR__ . '/lib/i18n.php';
                     <?= htmlspecialchars(t('ui.lang'), ENT_QUOTES, 'UTF-8') ?>
                 </button>
                 <ul class="dropdown-menu" aria-labelledby="langDropdown">
-                    <li><a class="dropdown-item" href="<?= htmlspecialchars(app_url('create.php?lang=en'), ENT_QUOTES, 'UTF-8') ?>">English</a></li>
-                    <li><a class="dropdown-item" href="<?= htmlspecialchars(app_url('create.php?lang=fa'), ENT_QUOTES, 'UTF-8') ?>">فارسی</a></li>
+                    <li><a class="dropdown-item" href="<?= htmlspecialchars(app_relative_url('create.php?lang=en'), ENT_QUOTES, 'UTF-8') ?>">English</a></li>
+                    <li><a class="dropdown-item" href="<?= htmlspecialchars(app_relative_url('create.php?lang=fa'), ENT_QUOTES, 'UTF-8') ?>">فارسی</a></li>
                 </ul>
             </div>
+            <a class="btn btn-sm btn-outline-secondary" href="<?= htmlspecialchars(app_lang_url('documents.php'), ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars(t('nav.documents'), ENT_QUOTES, 'UTF-8') ?></a>
+            <a class="btn btn-sm btn-outline-secondary" href="<?= htmlspecialchars(app_lang_url('privacy.php'), ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars(t('nav.privacy'), ENT_QUOTES, 'UTF-8') ?></a>
+            <a class="btn btn-sm btn-outline-secondary" href="<?= htmlspecialchars(app_lang_url('mirror.php'), ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars(t('nav.mirror'), ENT_QUOTES, 'UTF-8') ?></a>
             <button id="themeToggle" type="button" class="btn btn-sm btn-outline-secondary"></button>
         </div>
     </div>
@@ -169,8 +172,8 @@ window.__ATTACHMENT_POLICY = <?= json_encode([
     'raw' => ATTACHMENT_ALLOWED_EXTENSIONS,
 ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
 </script>
-<script type="module" src="<?= htmlspecialchars(app_url('assets/js/ui.js?v=20260327a'), ENT_QUOTES, 'UTF-8') ?>"></script>
-<script type="module" src="<?= htmlspecialchars(app_url('assets/js/create.js?v=20260327i'), ENT_QUOTES, 'UTF-8') ?>"></script>
+<script type="module" src="<?= htmlspecialchars(app_relative_url('assets/js/ui.js?v=20260327a'), ENT_QUOTES, 'UTF-8') ?>"></script>
+<script type="module" src="<?= htmlspecialchars(app_relative_url('assets/js/create.js?v=20260327i'), ENT_QUOTES, 'UTF-8') ?>"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 </body>
 </html>

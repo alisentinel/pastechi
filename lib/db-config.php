@@ -141,15 +141,34 @@ function test_db_connection(string $host, int $port, string $name, string $user,
     }
 }
 
-function write_env_file(string $host, int $port, string $name, string $user, string $pass): bool
+function write_env_file(
+    string $host,
+    int $port,
+    string $name,
+    string $user,
+    string $pass,
+    string $appName,
+    int $maxPayloadBytes,
+    int $attachmentMaxBytes,
+    string $attachmentAllowedExtensions
+): bool
 {
     $envPath = dirname(__DIR__) . '/.env';
-    $content = "# Database Configuration\n"
+    $safeAppName = str_replace(["\r", "\n"], ' ', trim($appName));
+    $safeAttachmentExt = str_replace(["\r", "\n"], '', trim($attachmentAllowedExtensions));
+
+    $content = "# PasteChi Configuration\n"
+        . 'APP_NAME=' . $safeAppName . "\n\n"
+        . "# Database Configuration\n"
         . 'DB_HOST=' . $host . "\n"
         . 'DB_PORT=' . $port . "\n"
         . 'DB_NAME=' . $name . "\n"
         . 'DB_USER=' . $user . "\n"
-        . 'DB_PASS=' . $pass . "\n";
+        . 'DB_PASS=' . $pass . "\n\n"
+        . "# Payload & Attachment Policy\n"
+        . 'MAX_PAYLOAD_BYTES=' . $maxPayloadBytes . "\n"
+        . 'ATTACHMENT_MAX_BYTES=' . $attachmentMaxBytes . "\n"
+        . 'ATTACHMENT_ALLOWED_EXTENSIONS=' . ($safeAttachmentExt === '' ? '*' : $safeAttachmentExt) . "\n";
 
     return file_put_contents($envPath, $content, LOCK_EX) !== false;
 }

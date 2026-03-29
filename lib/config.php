@@ -65,7 +65,7 @@ function env_string(string $key, string $default): string
 
 pastechi_load_env_once();
 
-const APP_NAME = 'PasteChi';
+define('APP_NAME', env_string('APP_NAME', 'PasteChi'));
 const APP_VERSION = '0.1.0';
 
 const STORAGE_ROOT = __DIR__ . '/../storage';
@@ -167,4 +167,16 @@ function app_url(string $path = ''): string
         return $base !== '' ? ($base . '/') : '/';
     }
     return ($base !== '' ? $base : '') . '/' . $normalized;
+}
+
+function app_relative_url(string $path = ''): string
+{
+    $base = trim(app_base_path(), '/');
+    $normalized = ltrim($path, '/');
+
+    if ($normalized === '') {
+        return $base === '' ? './' : './' . $base . '/';
+    }
+
+    return $base === '' ? $normalized : ($base . '/' . $normalized);
 }
