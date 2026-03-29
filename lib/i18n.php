@@ -2,6 +2,9 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/db-config.php';
+auto_migrate_if_possible();
+
 const SUPPORTED_LANGS = ['en', 'fa'];
 const LANG_COOKIE_KEY = 'pastechi_lang_v2';
 

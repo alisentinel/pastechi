@@ -174,6 +174,16 @@ function db_add_column_if_missing(PDO $pdo, string $table, string $column, strin
     $pdo->exec(sprintf('ALTER TABLE `%s` ADD COLUMN `%s` %s', $table, $column, $definition));
 }
 
+function db_table_exists(PDO $pdo, string $table): bool
+{
+    $stmt = $pdo->prepare('SELECT 1 FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = :table_name LIMIT 1');
+    $stmt->execute([
+        ':table_name' => $table,
+    ]);
+
+    return (bool) $stmt->fetchColumn();
+}
+
 function ensure_database_schema(): void
 {
     static $initialized = false;
@@ -273,6 +283,11 @@ function ensure_database_schema(): void
         $pdo->exec('ALTER TABLE discussions ADD COLUMN paste_codeHash VARCHAR(64) NULL');
         $pdo->exec("UPDATE discussions d INNER JOIN pastes p ON p.code = d.paste_code SET d.paste_codeHash = p.codeHash WHERE d.paste_codeHash IS NULL OR d.paste_codeHash = ''");
         $pdo->exec('ALTER TABLE discussions MODIFY COLUMN paste_codeHash VARCHAR(64) NOT NULL');
+        try {
+            $pdo->exec('ALTER TABLE discussions MODIFY COLUMN paste_code VARCHAR(6) NULL');
+        } catch (Throwable $e) {
+            // ignore
+        }
     }
 
     try {
@@ -281,5 +296,28 @@ function ensure_database_schema(): void
         // Index may already exist.
     }
 
+    if (db_table_exists($pdo, 'discussions')) {
+        try {
+            $pdo->exec('ALTER TABLE discussions ADD CONSTRAINT fk_discussions_codehash FOREIGN KEY (paste_codeHash) REFERENCES pastes(codeHash) ON DELETE CASCADE');
+        } catch (Throwable $e) {
+            // FK may already exist.
+        }
+    }
+
     $initialized = true;
+}
+
+function auto_migrate_if_possible(): void
+{
+    static $ran = false;
+    if ($ran) {
+        return;
+    }
+    $ran = true;
+
+    if (db_setup_required() || !db_can_connect()) {
+        return;
+    }
+
+    ensure_database_schema();
 }

@@ -13,6 +13,21 @@ ini_set('display_errors', '1');
 
 require_once __DIR__ . '/lib/db-config.php';
 
+function table_exists(PDO $pdo, string $table): bool
+{
+    $stmt = $pdo->prepare('SELECT 1 FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = :table LIMIT 1');
+    $stmt->execute([':table' => $table]);
+    return (bool) $stmt->fetchColumn();
+}
+
+function is_fresh_install(PDO $pdo): bool
+{
+    return !table_exists($pdo, 'pastes')
+        && !table_exists($pdo, 'discussions')
+        && !table_exists($pdo, 'rate_limits')
+        && !table_exists($pdo, 'logs');
+}
+
 $migrations_dir = __DIR__ . '/migrations';
 
 if (!is_dir($migrations_dir)) {
@@ -29,6 +44,15 @@ if (empty($migrations)) {
 
 try {
     $pdo = get_db();
+
+    $baseline = $migrations_dir . '/000_initial_schema.sql';
+    $freshInstall = is_fresh_install($pdo);
+
+    if ($freshInstall && is_file($baseline)) {
+        $migrations = [$baseline];
+    } else {
+        $migrations = array_values(array_filter($migrations, static fn(string $path): bool => basename($path) !== '000_initial_schema.sql'));
+    }
     
     echo "Starting migrations...\n";
     echo "=====================================\n\n";
