@@ -6,6 +6,8 @@ require_once __DIR__ . '/lib/i18n.php';
 
 const MIRROR_DIR = STORAGE_ROOT . '/mirror';
 const MIRROR_ZIP_NAME = 'pastechi-mirror.zip';
+const MIRROR_LOCK_NAME = 'build.lock';
+const MIRROR_STATE_NAME = 'state.json';
 
 function mirror_zip_path(): string
 {
@@ -20,6 +22,16 @@ function mirror_rel_zip_url(): string
 function mirror_repo_root(): string
 {
     return __DIR__;
+}
+
+function mirror_lock_path(): string
+{
+    return MIRROR_DIR . '/' . MIRROR_LOCK_NAME;
+}
+
+function mirror_state_path(): string
+{
+    return MIRROR_DIR . '/' . MIRROR_STATE_NAME;
 }
 
 function ensure_mirror_dir(): void
@@ -134,19 +146,169 @@ function generate_mirror_zip(): array
     ];
 }
 
+function mirror_source_fingerprint(): string
+{
+    $root = mirror_repo_root();
+    $rolling = hash_init('sha256');
+
+    $iterator = new RecursiveIteratorIterator(
+        new RecursiveDirectoryIterator($root, FilesystemIterator::SKIP_DOTS),
+        RecursiveIteratorIterator::LEAVES_ONLY
+    );
+
+    foreach ($iterator as $file) {
+        if (!$file instanceof SplFileInfo || !$file->isFile()) {
+            continue;
+        }
+
+        $fullPath = $file->getPathname();
+        $relativePath = str_replace('\\', '/', substr($fullPath, strlen($root) + 1));
+        if (should_exclude_path($relativePath)) {
+            continue;
+        }
+
+        $fileHash = hash_file('sha256', $fullPath);
+        if (!is_string($fileHash)) {
+            continue;
+        }
+
+        hash_update($rolling, $relativePath . '|' . $fileHash . "\n");
+    }
+
+    return hash_final($rolling);
+}
+
+function mirror_read_state(): array
+{
+    $statePath = mirror_state_path();
+    if (!is_file($statePath)) {
+        return [];
+    }
+
+    $raw = file_get_contents($statePath);
+    if (!is_string($raw) || $raw === '') {
+        return [];
+    }
+
+    $decoded = json_decode($raw, true);
+    return is_array($decoded) ? $decoded : [];
+}
+
+function mirror_write_state(string $sourceFingerprint, string $zipHash): void
+{
+    $state = [
+        'sourceFingerprint' => $sourceFingerprint,
+        'zipHash' => $zipHash,
+        'updatedAt' => time(),
+    ];
+
+    file_put_contents(
+        mirror_state_path(),
+        json_encode($state, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+        LOCK_EX
+    );
+}
+
+function should_rebuild_mirror_zip(string $sourceFingerprint): bool
+{
+    if (!is_file(mirror_zip_path())) {
+        return true;
+    }
+
+    $state = mirror_read_state();
+    $previous = (string) ($state['sourceFingerprint'] ?? '');
+
+    if ($previous === '') {
+        return true;
+    }
+
+    return !hash_equals($previous, $sourceFingerprint);
+}
+
+function auto_refresh_mirror_zip(): array
+{
+    ensure_mirror_dir();
+    $sourceFingerprint = mirror_source_fingerprint();
+
+    if (!should_rebuild_mirror_zip($sourceFingerprint)) {
+        return [
+            'ok' => true,
+            'generated' => false,
+            'reason' => 'up_to_date',
+        ];
+    }
+
+    $lockHandle = fopen(mirror_lock_path(), 'c+');
+    if ($lockHandle === false) {
+        return [
+            'ok' => false,
+            'generated' => false,
+            'error' => 'Could not open build lock file.',
+        ];
+    }
+
+    try {
+        if (!flock($lockHandle, LOCK_EX | LOCK_NB)) {
+            return [
+                'ok' => true,
+                'generated' => false,
+                'reason' => 'generation_in_progress',
+            ];
+        }
+
+        $sourceFingerprintAfterLock = mirror_source_fingerprint();
+        if (!should_rebuild_mirror_zip($sourceFingerprintAfterLock)) {
+            return [
+                'ok' => true,
+                'generated' => false,
+                'reason' => 'already_refreshed',
+            ];
+        }
+
+        $generated = generate_mirror_zip();
+        if (!($generated['ok'] ?? false)) {
+            return [
+                'ok' => false,
+                'generated' => false,
+                'error' => (string) ($generated['error'] ?? 'Archive generation failed.'),
+            ];
+        }
+
+        $zipHash = (string) ($generated['hash'] ?? '');
+        if ($zipHash !== '') {
+            mirror_write_state($sourceFingerprintAfterLock, $zipHash);
+        }
+
+        return [
+            'ok' => true,
+            'generated' => true,
+            'reason' => 'generated',
+            'hash' => $zipHash,
+            'size' => (int) ($generated['size'] ?? 0),
+        ];
+    } finally {
+        @flock($lockHandle, LOCK_UN);
+        @fclose($lockHandle);
+    }
+}
+
 $hash = '';
 $size = 0;
 $error = '';
+$status = '';
 $zipExists = is_file(mirror_zip_path());
 
-if (isset($_GET['generate']) && $_GET['generate'] === '1') {
-    $generated = generate_mirror_zip();
-    if (!($generated['ok'] ?? false)) {
-        $error = (string) ($generated['error'] ?? 'Archive generation failed.');
-    } else {
+$auto = auto_refresh_mirror_zip();
+if (!($auto['ok'] ?? false)) {
+    $error = (string) ($auto['error'] ?? 'Archive generation failed.');
+} else {
+    if (($auto['generated'] ?? false) === true) {
+        $status = 'Mirror ZIP was refreshed automatically.';
         $zipExists = true;
-        $hash = (string) ($generated['hash'] ?? '');
-        $size = (int) ($generated['size'] ?? 0);
+        $hash = (string) ($auto['hash'] ?? '');
+        $size = (int) ($auto['size'] ?? 0);
+    } else {
+        $status = 'Mirror ZIP is up to date (regenerates only when files change).';
     }
 }
 
@@ -179,11 +341,17 @@ if ($zipExists && $hash === '') {
         <div class="card-body p-4 p-md-5">
             <h1 class="h3 mb-3">Create your mirror</h1>
             <p class="text-secondary">Use this page to mirror the current project source quickly.</p>
+            <p class="text-secondary">ZIP refresh runs automatically on visit, with lock protection and file-change detection.</p>
 
             <div class="mb-3">
                 <a class="btn btn-outline-light" href="https://github.com/alisentinel/pastechi" target="_blank" rel="noopener noreferrer">GitHub repository</a>
-                <a class="btn btn-primary" href="<?= htmlspecialchars(app_lang_url('mirror.php', ['generate' => '1']), ENT_QUOTES, 'UTF-8') ?>">Generate / Refresh ZIP</a>
             </div>
+
+            <?php if ($status !== ''): ?>
+                <div class="alert alert-info" role="alert">
+                    <?= htmlspecialchars($status, ENT_QUOTES, 'UTF-8') ?>
+                </div>
+            <?php endif; ?>
 
             <?php if ($error !== ''): ?>
                 <div class="alert alert-danger" role="alert">
@@ -199,7 +367,7 @@ if ($zipExists && $hash === '') {
                 </div>
             <?php else: ?>
                 <div class="alert alert-secondary" role="alert">
-                    No ZIP generated yet. Click <strong>Generate / Refresh ZIP</strong>.
+                    No ZIP generated yet. Reload this page after enabling ZIP support on server.
                 </div>
             <?php endif; ?>
         </div>

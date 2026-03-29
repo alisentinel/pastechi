@@ -171,12 +171,14 @@ function app_url(string $path = ''): string
 
 function app_relative_url(string $path = ''): string
 {
-    $base = trim(app_base_path(), '/');
-    $normalized = ltrim($path, '/');
-
-    if ($normalized === '') {
-        return $base === '' ? './' : './' . $base . '/';
+    $raw = trim($path);
+    if ($raw === '') {
+        return './';
     }
 
-    return $base === '' ? $normalized : ($base . '/' . $normalized);
+    if (str_starts_with($raw, '?') || str_starts_with($raw, '#')) {
+        return $raw;
+    }
+
+    return ltrim($raw, '/');
 }
