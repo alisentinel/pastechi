@@ -106,8 +106,10 @@ if ($discussionEnabled && strlen($discussionSalt) > 128) {
 
 try {
     $pdo = get_db();
+    $codeHash = code_hash($code);
     $stmt = $pdo->prepare('INSERT INTO pastes (
         code,
+        codeHash,
         ciphertext,
         iv,
         salt,
@@ -129,6 +131,7 @@ try {
         forensics_buckets
     ) VALUES (
         :code,
+        :codeHash,
         :ciphertext,
         :iv,
         :salt,
@@ -152,6 +155,7 @@ try {
 
     $stmt->execute([
         ':code' => $code,
+        ':codeHash' => $codeHash,
         ':ciphertext' => $ciphertext,
         ':iv' => $iv,
         ':salt' => $salt,

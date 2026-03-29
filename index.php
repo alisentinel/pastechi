@@ -59,6 +59,18 @@ if ($setupRequired) {
                             <input id="codeInput" class="form-control mono" type="text" maxlength="6" minlength="6" pattern="[0-9]{6}" inputmode="numeric" placeholder="123456" required>
                             <button type="submit" class="btn btn-primary"><?= htmlspecialchars(t('home.open_button'), ENT_QUOTES, 'UTF-8') ?></button>
                         </form>
+                        <div class="form-text text-secondary mt-2">
+                            <strong><?= htmlspecialchars(t('home.security.title'), ENT_QUOTES, 'UTF-8') ?></strong>
+                            <ul class="mb-0 mt-1 ps-3 small">
+                                <li><?= htmlspecialchars(t('home.security.client_side'), ENT_QUOTES, 'UTF-8') ?></li>
+                                <li><?= htmlspecialchars(t('home.security.algorithm'), ENT_QUOTES, 'UTF-8') ?></li>
+                                <li><?= htmlspecialchars(t('home.security.code_hash'), ENT_QUOTES, 'UTF-8') ?></li>
+                                <li><?= htmlspecialchars(t('home.security.tracking'), ENT_QUOTES, 'UTF-8') ?></li>
+                                <li><?= htmlspecialchars(t('home.security.storage'), ENT_QUOTES, 'UTF-8') ?></li>
+                                <li><?= htmlspecialchars(t('home.security.ip'), ENT_QUOTES, 'UTF-8') ?></li>
+                                <li><?= htmlspecialchars(t('home.security.dependency'), ENT_QUOTES, 'UTF-8') ?></li>
+                            </ul>
+                        </div>
                     </div>
                     <div class="col-12 col-md-4 d-grid">
                         <button id="createBtn" class="btn btn-outline-light" type="button"><?= htmlspecialchars(t('home.create_button'), ENT_QUOTES, 'UTF-8') ?></button>

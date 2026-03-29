@@ -151,6 +151,11 @@ function verify_code(string $code): bool
     return (bool) preg_match('/^[0-9]{6}$/', $code);
 }
 
+function code_hash(string $code): string
+{
+    return hash('sha256', SERVER_PEPPER . '|code|' . $code);
+}
+
 function now(): int
 {
     return time();

@@ -12,14 +12,15 @@ if (!verify_code($code)) {
     json_response(['ok' => false, 'error' => 'unavailable'], 404);
 }
 
+$codeHash = code_hash($code);
 $timestamp = now();
 
 try {
     $pdo = get_db();
     $pdo->beginTransaction();
 
-    $select = $pdo->prepare('SELECT * FROM pastes WHERE code = :code FOR UPDATE');
-    $select->execute([':code' => $code]);
+    $select = $pdo->prepare('SELECT * FROM pastes WHERE codeHash = :codeHash FOR UPDATE');
+    $select->execute([':codeHash' => $codeHash]);
     $record = $select->fetch(PDO::FETCH_ASSOC);
 
     if (!is_array($record)) {
@@ -34,8 +35,8 @@ try {
     $uniqueViewsOnly = (bool) ($record['uniqueViewsOnly'] ?? false);
 
     if (($expireAt > 0 && $timestamp >= $expireAt) || ($maxViews > 0 && $views >= $maxViews)) {
-        $delete = $pdo->prepare('DELETE FROM pastes WHERE code = :code');
-        $delete->execute([':code' => $code]);
+        $delete = $pdo->prepare('DELETE FROM pastes WHERE codeHash = :codeHash');
+        $delete->execute([':codeHash' => $codeHash]);
         $pdo->commit();
         app_log('info', 'get_expired_or_consumed', ['code' => $code]);
         json_response(['ok' => false, 'error' => 'unavailable'], 404);
@@ -61,11 +62,11 @@ try {
             $forensicsBuckets[$bucket] = ((int) ($forensicsBuckets[$bucket] ?? 0)) + 1;
         }
 
-        $update = $pdo->prepare('UPDATE pastes SET views = :views, forensics_buckets = :forensics_buckets WHERE code = :code');
+        $update = $pdo->prepare('UPDATE pastes SET views = :views, forensics_buckets = :forensics_buckets WHERE codeHash = :codeHash');
         $update->execute([
             ':views' => $views,
             ':forensics_buckets' => json_encode($forensicsBuckets, JSON_UNESCAPED_SLASHES),
-            ':code' => $code,
+            ':codeHash' => $codeHash,
         ]);
     }
 
@@ -123,8 +124,8 @@ try {
     }
 
     if ($shouldDelete) {
-        $delete = $pdo->prepare('DELETE FROM pastes WHERE code = :code');
-        $delete->execute([':code' => $code]);
+        $delete = $pdo->prepare('DELETE FROM pastes WHERE codeHash = :codeHash');
+        $delete->execute([':codeHash' => $codeHash]);
     }
 
     $pdo->commit();

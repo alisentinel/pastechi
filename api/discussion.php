@@ -17,10 +17,12 @@ if (!verify_code($code)) {
     json_response(['ok' => false, 'error' => 'invalid_code'], 400);
 }
 
+$codeHash = code_hash($code);
+
 try {
     $pdo = get_db();
-    $pasteStmt = $pdo->prepare('SELECT code, modes_discussion, kdfIterations FROM pastes WHERE code = :code');
-    $pasteStmt->execute([':code' => $code]);
+    $pasteStmt = $pdo->prepare('SELECT code, modes_discussion, kdfIterations FROM pastes WHERE codeHash = :codeHash');
+    $pasteStmt->execute([':codeHash' => $codeHash]);
     $paste = $pasteStmt->fetch(PDO::FETCH_ASSOC);
 } catch (Throwable $e) {
     app_log('error', 'discussion_storage_read_failed', ['code' => $code, 'error' => $e->getMessage()]);
@@ -34,8 +36,8 @@ if (!is_array($paste) || ((bool) ($paste['modes_discussion'] ?? false) !== true)
 
 if ($method === 'GET') {
     $since = max(0, (int) ($_GET['since'] ?? 0));
-    $stmt = $pdo->prepare('SELECT id, createdAt, message_ciphertext, message_iv FROM discussions WHERE paste_code = :code AND id > :since ORDER BY id ASC LIMIT 200');
-    $stmt->bindValue(':code', $code, PDO::PARAM_STR);
+    $stmt = $pdo->prepare('SELECT id, createdAt, message_ciphertext, message_iv FROM discussions WHERE paste_codeHash = :codeHash AND id > :since ORDER BY id ASC LIMIT 200');
+    $stmt->bindValue(':codeHash', $codeHash, PDO::PARAM_STR);
     $stmt->bindValue(':since', $since, PDO::PARAM_INT);
     $stmt->execute();
 
@@ -72,9 +74,9 @@ if ($ciphertext === '' || $iv === '' || strlen($ciphertext) > MAX_MESSAGE_BYTES 
 }
 
 try {
-    $insert = $pdo->prepare('INSERT INTO discussions (paste_code, message_ciphertext, message_iv, message_kdfIterations, createdAt) VALUES (:code, :ciphertext, :iv, :kdfIterations, :createdAt)');
+    $insert = $pdo->prepare('INSERT INTO discussions (paste_codeHash, message_ciphertext, message_iv, message_kdfIterations, createdAt) VALUES (:codeHash, :ciphertext, :iv, :kdfIterations, :createdAt)');
     $insert->execute([
-        ':code' => $code,
+        ':codeHash' => $codeHash,
         ':ciphertext' => $ciphertext,
         ':iv' => $iv,
         ':kdfIterations' => (int) ($paste['kdfIterations'] ?? MIN_KDF_ITERATIONS),
@@ -83,10 +85,10 @@ try {
 
     $newId = (int) $pdo->lastInsertId();
 
-    $trim = $pdo->prepare('DELETE FROM discussions WHERE paste_code = :code AND id NOT IN (SELECT id FROM (SELECT id FROM discussions WHERE paste_code = :code2 ORDER BY id DESC LIMIT 200) AS recent_ids)');
+    $trim = $pdo->prepare('DELETE FROM discussions WHERE paste_codeHash = :codeHash AND id NOT IN (SELECT id FROM (SELECT id FROM discussions WHERE paste_codeHash = :codeHash2 ORDER BY id DESC LIMIT 200) AS recent_ids)');
     $trim->execute([
-        ':code' => $code,
-        ':code2' => $code,
+        ':codeHash' => $codeHash,
+        ':codeHash2' => $codeHash,
     ]);
 } catch (Throwable $e) {
     app_log('error', 'discussion_storage_write_failed', ['code' => $code, 'error' => $e->getMessage()]);

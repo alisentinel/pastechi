@@ -184,7 +184,9 @@ function ensure_database_schema(): void
     $pdo = get_db();
 
     $pdo->exec("CREATE TABLE IF NOT EXISTS pastes (
-        code VARCHAR(6) PRIMARY KEY,
+        id BIGINT AUTO_INCREMENT PRIMARY KEY,
+        code VARCHAR(6) NOT NULL,
+        codeHash VARCHAR(64) NOT NULL UNIQUE,
         ciphertext LONGTEXT NOT NULL,
         iv VARCHAR(256) NOT NULL,
         salt VARCHAR(256) NOT NULL,
@@ -206,20 +208,21 @@ function ensure_database_schema(): void
         forensics_buckets JSON DEFAULT NULL,
         INSERT_TS TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         UPDATE_TS TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY idx_codeHash (codeHash),
         INDEX idx_expires (expireAt),
         INDEX idx_created (createdAt)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
     $pdo->exec("CREATE TABLE IF NOT EXISTS discussions (
         id BIGINT AUTO_INCREMENT PRIMARY KEY,
-        paste_code VARCHAR(6) NOT NULL,
+        paste_codeHash VARCHAR(64) NOT NULL,
         message_ciphertext LONGTEXT NOT NULL,
         message_iv VARCHAR(256) NOT NULL,
         message_kdfIterations INT NOT NULL,
         createdAt BIGINT NOT NULL,
         INSERT_TS TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (paste_code) REFERENCES pastes(code) ON DELETE CASCADE,
-        INDEX idx_paste_code (paste_code),
+        FOREIGN KEY (paste_codeHash) REFERENCES pastes(codeHash) ON DELETE CASCADE,
+        INDEX idx_paste_codeHash (paste_codeHash),
         INDEX idx_created (createdAt)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
@@ -245,6 +248,7 @@ function ensure_database_schema(): void
         INDEX idx_message (message)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
+    db_add_column_if_missing($pdo, 'pastes', 'codeHash', 'VARCHAR(64) NULL');
     db_add_column_if_missing($pdo, 'pastes', 'uniqueViewsOnly', 'BOOLEAN NOT NULL DEFAULT FALSE');
     db_add_column_if_missing($pdo, 'pastes', 'lockUntil', 'BIGINT NOT NULL DEFAULT 0');
     db_add_column_if_missing($pdo, 'pastes', 'binding_type', "VARCHAR(32) NOT NULL DEFAULT 'none'");
@@ -255,6 +259,27 @@ function ensure_database_schema(): void
     db_add_column_if_missing($pdo, 'pastes', 'requires_fragment', 'BOOLEAN NOT NULL DEFAULT FALSE');
     db_add_column_if_missing($pdo, 'pastes', 'password_protected', 'BOOLEAN NOT NULL DEFAULT TRUE');
     db_add_column_if_missing($pdo, 'pastes', 'forensics_buckets', 'JSON DEFAULT NULL');
+
+    $pdo->prepare("UPDATE pastes SET codeHash = SHA2(CONCAT(:pepper, '|code|', code), 256) WHERE codeHash IS NULL OR codeHash = ''")
+        ->execute([':pepper' => (string) SERVER_PEPPER]);
+
+    try {
+        $pdo->exec('ALTER TABLE pastes ADD UNIQUE INDEX idx_codeHash (codeHash)');
+    } catch (Throwable $e) {
+        // Index may already exist.
+    }
+
+    if (db_column_exists($pdo, 'discussions', 'paste_code') && !db_column_exists($pdo, 'discussions', 'paste_codeHash')) {
+        $pdo->exec('ALTER TABLE discussions ADD COLUMN paste_codeHash VARCHAR(64) NULL');
+        $pdo->exec("UPDATE discussions d INNER JOIN pastes p ON p.code = d.paste_code SET d.paste_codeHash = p.codeHash WHERE d.paste_codeHash IS NULL OR d.paste_codeHash = ''");
+        $pdo->exec('ALTER TABLE discussions MODIFY COLUMN paste_codeHash VARCHAR(64) NOT NULL');
+    }
+
+    try {
+        $pdo->exec('ALTER TABLE discussions ADD INDEX idx_paste_codeHash (paste_codeHash)');
+    } catch (Throwable $e) {
+        // Index may already exist.
+    }
 
     $initialized = true;
 }
