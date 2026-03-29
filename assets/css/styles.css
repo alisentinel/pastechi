@@ -242,12 +242,12 @@ body[data-theme="light"] pre {
 }
 
 .app-nav {
-    display: flex;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
-    justify-content: space-between;
-    gap: 0.75rem;
+    column-gap: 0.75rem;
+    row-gap: 0.5rem;
     margin-bottom: 1rem;
-    flex-wrap: wrap;
 }
 
 .app-nav-controls {
@@ -255,6 +255,41 @@ body[data-theme="light"] pre {
     align-items: center;
     gap: 0.5rem;
     flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.app-nav-controls > .btn,
+.app-nav-controls > .dropdown {
+    flex: 0 0 auto;
+}
+
+.app-nav-controls .dropdown-toggle,
+.app-nav-controls .btn {
+    height: 2rem;
+    padding-top: 0.2rem;
+    padding-bottom: 0.2rem;
+}
+
+@media (max-width: 768px) {
+    .app-nav {
+        grid-template-columns: 1fr;
+    }
+
+    .app-nav-controls {
+        justify-content: flex-start;
+        width: 100%;
+    }
+
+    .app-nav-controls > .btn,
+    .app-nav-controls > .dropdown {
+        flex: 1 1 calc(50% - 0.5rem);
+        min-width: 0;
+    }
+
+    .app-nav-controls .dropdown-toggle,
+    .app-nav-controls .btn {
+        width: 100%;
+    }
 }
 
 .pane {
