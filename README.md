@@ -55,8 +55,26 @@ Installer writes these settings to `.env`.
 - Use HTTPS in production.
 - For stronger access control, use password + fragment key options when creating pastes.
 
-## Mirror integrity
+## GitHub source ZIP automation
 
-From `mirror.php`, generate/update the ZIP and verify the shown SHA-256 before distribution.
+This repository now includes a GitHub Action workflow: [.github/workflows/main-source-zip.yml](.github/workflows/main-source-zip.yml)
+
+- Trigger: every push to `main` (and manual `workflow_dispatch`)
+- Output:
+  - `pastechi-<shortsha>.zip`
+  - `SHA256SUMS.txt`
+- Publish targets:
+  - Workflow artifacts
+  - GitHub Release assets (`source-main-<shortsha>` tag)
+
+## Trusted hash for users
+
+1. Download both ZIP and `SHA256SUMS.txt` from the same GitHub release.
+2. Verify locally:
+   - Linux/macOS: `sha256sum -c SHA256SUMS.txt`
+   - Windows PowerShell: `Get-FileHash .\pastechi-<shortsha>.zip -Algorithm SHA256`
+3. (Stronger trust) verify GitHub attestation/provenance for the workflow run using GitHub's artifact attestation tools.
+
+This gives users both a visible checksum and supply-chain provenance tied to GitHub Actions.
 
 GitHub repository: https://github.com/alisentinel/pastechi
