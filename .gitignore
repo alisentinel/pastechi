@@ -7,6 +7,10 @@ lib/db-config.local.php
 
 # Legacy file storage (unused with SQL runtime)
 # storage/
+storage/mirror/
+
+# Generated release/build output
+dist/
 
 # IDE
 .vscode/
