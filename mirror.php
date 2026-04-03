@@ -16,7 +16,7 @@ function mirror_zip_path(): string
 
 function mirror_rel_zip_url(): string
 {
-    return app_relative_url('storage/mirror/' . MIRROR_ZIP_NAME);
+    return app_relative_url('mirror.php?action=download');
 }
 
 function mirror_repo_root(): string
@@ -290,6 +290,35 @@ function auto_refresh_mirror_zip(): array
         @flock($lockHandle, LOCK_UN);
         @fclose($lockHandle);
     }
+}
+
+function mirror_stream_zip(): void
+{
+    if (!is_file(mirror_zip_path())) {
+        http_response_code(404);
+        echo 'Not found';
+        exit;
+    }
+
+    $downloadName = 'pastechi-mirror.zip';
+    header('Content-Type: application/zip');
+    header('Content-Length: ' . (string) filesize(mirror_zip_path()));
+    header('Content-Disposition: attachment; filename="' . $downloadName . '"');
+    header('X-Content-Type-Options: nosniff');
+    readfile(mirror_zip_path());
+    exit;
+}
+
+$action = (string) ($_GET['action'] ?? '');
+if ($action === 'download') {
+    $downloadState = auto_refresh_mirror_zip();
+    if (!($downloadState['ok'] ?? false)) {
+        http_response_code(500);
+        echo (string) ($downloadState['error'] ?? 'Archive generation failed.');
+        exit;
+    }
+
+    mirror_stream_zip();
 }
 
 $hash = '';
