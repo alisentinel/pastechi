@@ -112,9 +112,14 @@ function sanitize_log_path(string $rawPath): string
 
 function app_log(string $level, string $message, array $context = []): void
 {
+    $normalizedLevel = strtolower($level);
+    if (!in_array($normalizedLevel, ['warn', 'error'], true)) {
+        return;
+    }
+
     $record = [
         'ts' => now(),
-        'level' => strtolower($level),
+        'level' => $normalizedLevel,
         'message' => substr($message, 0, 200),
         'path' => sanitize_log_path((string) ($_SERVER['REQUEST_URI'] ?? '')),
         'context' => redact_context($context),
@@ -381,6 +386,9 @@ function cleanup_expired_files(): void
 
         $deleteRates = $pdo->prepare('DELETE FROM rate_limits WHERE window_start < :threshold');
         $deleteRates->execute([':threshold' => $timestamp - (60 * 10)]);
+
+        $deleteLogs = $pdo->prepare('DELETE FROM logs WHERE ts < :threshold');
+        $deleteLogs->execute([':threshold' => $timestamp - LOG_RETENTION_SECONDS]);
     } catch (Throwable $e) {
         app_log('warn', 'cleanup_sql_failed', ['message' => $e->getMessage()]);
     }
