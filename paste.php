@@ -94,6 +94,7 @@ if (!preg_match('/^[0-9]{6}$/', $code)) {
 <script>window.__APP_LANG = <?= json_encode(current_lang(), JSON_UNESCAPED_SLASHES) ?>;</script>
 <script src="<?= htmlspecialchars(app_relative_url('assets/vendor/highlight/highlight.min.js'), ENT_QUOTES, 'UTF-8') ?>"></script>
 <script type="module" src="<?= htmlspecialchars(app_relative_url('assets/js/ui.js?v=20260327a'), ENT_QUOTES, 'UTF-8') ?>"></script>
+<script type="module" src="<?= htmlspecialchars(app_relative_url('assets/js/input-markdown.js?v=20260404a'), ENT_QUOTES, 'UTF-8') ?>"></script>
 <script type="module" src="<?= htmlspecialchars(app_relative_url('assets/js/view.js?v=20260327g'), ENT_QUOTES, 'UTF-8') ?>"></script>
 <script src="<?= htmlspecialchars(app_relative_url('assets/vendor/bootstrap/js/bootstrap.bundle.min.js'), ENT_QUOTES, 'UTF-8') ?>"></script>
 </body>

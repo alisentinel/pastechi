@@ -37,6 +37,121 @@ export function isLikelyCode(text) {
     return newlineCount >= 1 && matchedHints >= 2;
 }
 
+function safeUrlOrEmpty(raw) {
+    try {
+        const parsed = new URL(String(raw || ""), window.location.origin);
+        if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+            return parsed.toString();
+        }
+    } catch (_error) {
+    }
+    return "";
+}
+
+function appendInlineMarkdown(container, text) {
+    const pattern = /(\[[^\]\n]+\]\((?:https?:\/\/)[^\s)]+\)|`[^`\n]+`|\*\*[^*\n]+\*\*|__[^_\n]+__|\*[^*\n]+\*)/g;
+    let lastIndex = 0;
+    let match = null;
+
+    while ((match = pattern.exec(text)) !== null) {
+        if (match.index > lastIndex) {
+            container.appendChild(document.createTextNode(text.slice(lastIndex, match.index)));
+        }
+
+        const token = match[0];
+        if (token.startsWith("[")) {
+            const linkMatch = token.match(/^\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\)$/);
+            if (linkMatch) {
+                const href = safeUrlOrEmpty(linkMatch[2]);
+                if (href) {
+                    const a = document.createElement("a");
+                    a.href = href;
+                    a.target = "_blank";
+                    a.rel = "noopener noreferrer nofollow";
+                    a.textContent = linkMatch[1];
+                    container.appendChild(a);
+                } else {
+                    container.appendChild(document.createTextNode(token));
+                }
+            } else {
+                container.appendChild(document.createTextNode(token));
+            }
+        } else if (token.startsWith("**") && token.endsWith("**")) {
+            const el = document.createElement("strong");
+            el.textContent = token.slice(2, -2);
+            container.appendChild(el);
+        } else if (token.startsWith("__") && token.endsWith("__")) {
+            const el = document.createElement("u");
+            el.textContent = token.slice(2, -2);
+            container.appendChild(el);
+        } else if (token.startsWith("`") && token.endsWith("`")) {
+            const el = document.createElement("code");
+            el.textContent = token.slice(1, -1);
+            container.appendChild(el);
+        } else if (token.startsWith("*") && token.endsWith("*")) {
+            const el = document.createElement("em");
+            el.textContent = token.slice(1, -1);
+            container.appendChild(el);
+        } else {
+            container.appendChild(document.createTextNode(token));
+        }
+
+        lastIndex = pattern.lastIndex;
+    }
+
+    if (lastIndex < text.length) {
+        container.appendChild(document.createTextNode(text.slice(lastIndex)));
+    }
+}
+
+function renderStrictMarkdown(container, text) {
+    const source = String(text || "");
+    const blockPattern = /```([\s\S]*?)```/g;
+    let lastIndex = 0;
+    let match = null;
+
+    while ((match = blockPattern.exec(source)) !== null) {
+        const plainPart = source.slice(lastIndex, match.index);
+        if (plainPart) {
+            const lines = plainPart.split("\n");
+            lines.forEach((line, index) => {
+                if (line.length > 0) {
+                    const body = document.createElement("span");
+                    appendInlineMarkdown(body, line);
+                    container.appendChild(body);
+                }
+                if (index < lines.length - 1) {
+                    container.appendChild(document.createElement("br"));
+                }
+            });
+        }
+
+        const pre = document.createElement("pre");
+        const code = document.createElement("code");
+        code.textContent = String(match[1] || "").replace(/^\n+|\n+$/g, "");
+        pre.appendChild(code);
+        container.appendChild(pre);
+        applyCodeHighlighting(pre);
+
+        lastIndex = blockPattern.lastIndex;
+    }
+
+    const tail = source.slice(lastIndex);
+    if (tail) {
+        const lines = tail.split("\n");
+        lines.forEach((line, index) => {
+            if (line.length > 0) {
+                const body = document.createElement("span");
+                appendInlineMarkdown(body, line);
+                container.appendChild(body);
+            }
+            if (index < lines.length - 1) {
+                container.appendChild(document.createElement("br"));
+            }
+        });
+    }
+}
+
 export function applyCodeHighlighting(scope) {
     if (!window.hljs || !scope) {
         return;
@@ -47,7 +162,7 @@ export function applyCodeHighlighting(scope) {
 }
 
 export function renderBubbleBody(container, text) {
-    if (isLikelyCode(text)) {
+    if (isLikelyCode(text) && !String(text || "").includes("```")) {
         const pre = document.createElement("pre");
         const code = document.createElement("code");
         code.textContent = text;
@@ -59,7 +174,7 @@ export function renderBubbleBody(container, text) {
 
     const body = document.createElement("div");
     body.className = "chat-bubble-text";
-    body.textContent = text;
+    renderStrictMarkdown(body, String(text || ""));
     container.appendChild(body);
 }
 
