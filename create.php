@@ -4,6 +4,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/lib/config.php';
 require_once __DIR__ . '/lib/i18n.php';
 require_once __DIR__ . '/lib/navbar.php';
+require_once __DIR__ . '/lib/ui-components.php';
 ?>
 <!doctype html>
 <html lang="<?= htmlspecialchars(current_lang(), ENT_QUOTES, 'UTF-8') ?>" dir="<?= htmlspecialchars(lang_dir(), ENT_QUOTES, 'UTF-8') ?>" data-bs-theme="dark">
@@ -29,15 +30,7 @@ require_once __DIR__ . '/lib/navbar.php';
                         <button id="addMessageBtn" class="btn btn-sm btn-outline-light" type="button">+ Add textbox</button>
                     </div>
                     <div id="messageBlocks" class="vstack gap-2"></div>
-                    <template id="messageBlockTemplate">
-                        <div class="message-block border rounded p-2">
-                            <div class="d-flex align-items-center justify-content-between mb-2">
-                                <small class="text-secondary message-block-label">Paste 1</small>
-                                <button type="button" class="btn btn-sm btn-outline-secondary remove-message-btn">Remove</button>
-                            </div>
-                            <textarea class="form-control message-input" rows="5" placeholder="<?= htmlspecialchars(t('create.content_placeholder'), ENT_QUOTES, 'UTF-8') ?>" required></textarea>
-                        </div>
-                    </template>
+                    <?php render_create_message_block_template(); ?>
                 </div>
                 <div class="mb-3">
                     <label for="attachment" class="form-label"><?= htmlspecialchars(t('create.attachment_label'), ENT_QUOTES, 'UTF-8') ?></label>

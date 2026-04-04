@@ -4,6 +4,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/lib/config.php';
 require_once __DIR__ . '/lib/i18n.php';
 require_once __DIR__ . '/lib/navbar.php';
+require_once __DIR__ . '/lib/ui-components.php';
 
 $code = (string) ($_GET['code'] ?? '');
 if (!preg_match('/^[0-9]{6}$/', $code)) {
@@ -84,13 +85,7 @@ if (!preg_match('/^[0-9]{6}$/', $code)) {
         <div class="card-body">
             <h2 class="h6"><?= htmlspecialchars(t('paste.discussion'), ENT_QUOTES, 'UTF-8') ?></h2>
             <div id="discussionList" class="chat-thread mb-3"></div>
-            <form id="discussionForm">
-                <textarea id="discussionInput" class="form-control mb-2" rows="3" placeholder="<?= htmlspecialchars(t('paste.message_placeholder'), ENT_QUOTES, 'UTF-8') ?>" maxlength="2000"></textarea>
-                <div class="d-flex align-items-center justify-content-between gap-2">
-                    <small class="text-secondary"><?= htmlspecialchars(t('paste.send_hint_multiline'), ENT_QUOTES, 'UTF-8') ?></small>
-                    <button type="submit" class="btn btn-sm btn-outline-light"><?= htmlspecialchars(t('paste.send'), ENT_QUOTES, 'UTF-8') ?></button>
-                </div>
-            </form>
+            <?php render_discussion_input_form(); ?>
         </div>
     </section>
 </main>
