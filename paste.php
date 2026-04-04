@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/lib/config.php';
 require_once __DIR__ . '/lib/i18n.php';
+require_once __DIR__ . '/lib/navbar.php';
 
 $code = (string) ($_GET['code'] ?? '');
 if (!preg_match('/^[0-9]{6}$/', $code)) {
@@ -45,24 +46,7 @@ if (!preg_match('/^[0-9]{6}$/', $code)) {
 </head>
 <body data-code="<?= htmlspecialchars($code, ENT_QUOTES, 'UTF-8') ?>" class="text-light" data-theme="dark">
 <main class="container py-5 app-wrap">
-    <div class="app-nav">
-        <a class="text-decoration-none text-reset app-brand" href="<?= htmlspecialchars(app_lang_url('index.php'), ENT_QUOTES, 'UTF-8') ?>"><?= APP_NAME ?></a>
-        <div class="app-nav-controls">
-            <div class="dropdown">
-                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="langDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                    <?= htmlspecialchars(t('ui.lang'), ENT_QUOTES, 'UTF-8') ?>
-                </button>
-                <ul class="dropdown-menu" aria-labelledby="langDropdown">
-                    <li><a class="dropdown-item" href="<?= htmlspecialchars(app_relative_url('paste.php?code=' . urlencode($code) . '&lang=en'), ENT_QUOTES, 'UTF-8') ?>">English</a></li>
-                    <li><a class="dropdown-item" href="<?= htmlspecialchars(app_relative_url('paste.php?code=' . urlencode($code) . '&lang=fa'), ENT_QUOTES, 'UTF-8') ?>">فارسی</a></li>
-                </ul>
-            </div>
-            <a class="btn btn-sm btn-outline-secondary" href="<?= htmlspecialchars(app_lang_url('documents.php'), ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars(t('nav.documents'), ENT_QUOTES, 'UTF-8') ?></a>
-            <a class="btn btn-sm btn-outline-secondary" href="<?= htmlspecialchars(app_lang_url('privacy.php'), ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars(t('nav.privacy'), ENT_QUOTES, 'UTF-8') ?></a>
-            <a class="btn btn-sm btn-outline-secondary" href="<?= htmlspecialchars(app_lang_url('mirror.php'), ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars(t('nav.mirror'), ENT_QUOTES, 'UTF-8') ?></a>
-            <button id="themeToggle" type="button" class="btn btn-sm btn-outline-secondary"></button>
-        </div>
-    </div>
+    <?php render_app_navbar(); ?>
 
     <h1 class="h4 mono mb-2"><?= htmlspecialchars($code, ENT_QUOTES, 'UTF-8') ?></h1>
     <p id="status" class="text-secondary"><?= htmlspecialchars(t('paste.loading'), ENT_QUOTES, 'UTF-8') ?></p>

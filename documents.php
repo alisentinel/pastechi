@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/lib/config.php';
 require_once __DIR__ . '/lib/i18n.php';
+require_once __DIR__ . '/lib/navbar.php';
 ?>
 <!doctype html>
 <html lang="<?= htmlspecialchars(current_lang(), ENT_QUOTES, 'UTF-8') ?>" dir="<?= htmlspecialchars(lang_dir(), ENT_QUOTES, 'UTF-8') ?>" data-bs-theme="dark">
@@ -15,14 +16,7 @@ require_once __DIR__ . '/lib/i18n.php';
 </head>
 <body class="text-light" data-theme="dark">
 <main class="container py-5 app-wrap">
-    <div class="app-nav mb-3">
-        <a class="text-decoration-none text-reset app-brand" href="<?= htmlspecialchars(app_lang_url('index.php'), ENT_QUOTES, 'UTF-8') ?>"><?= APP_NAME ?></a>
-        <div class="app-nav-controls">
-            <a class="btn btn-sm btn-outline-secondary" href="<?= htmlspecialchars(app_lang_url('privacy.php'), ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars(t('nav.privacy'), ENT_QUOTES, 'UTF-8') ?></a>
-            <a class="btn btn-sm btn-outline-secondary" href="<?= htmlspecialchars(app_lang_url('mirror.php'), ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars(t('nav.mirror'), ENT_QUOTES, 'UTF-8') ?></a>
-            <button id="themeToggle" type="button" class="btn btn-sm btn-outline-secondary"></button>
-        </div>
-    </div>
+    <?php render_app_navbar(); ?>
 
     <div class="card pane bg-dark-subtle border-secondary-subtle shadow-sm">
         <div class="card-body p-4 p-md-5">

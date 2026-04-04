@@ -4,6 +4,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/lib/config.php';
 require_once __DIR__ . '/lib/db-config.php';
 require_once __DIR__ . '/lib/i18n.php';
+require_once __DIR__ . '/lib/navbar.php';
 
 $setupRequired = db_setup_required();
 $dbConnected = db_can_connect();
@@ -27,28 +28,7 @@ if ($setupRequired) {
 
 <body class="text-light" data-theme="dark">
     <main class="container app-wrap min-vh-100 py-3 d-flex flex-column">
-        <div class="app-nav">
-            <div class="app-brand"><?= APP_NAME ?></div>
-            <div class="app-nav-controls">
-                <div class="dropdown">
-                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="langDropdown"
-                        data-bs-toggle="dropdown" aria-expanded="false">
-                        <?= htmlspecialchars(t('ui.lang'), ENT_QUOTES, 'UTF-8') ?>
-                    </button>
-                    <ul class="dropdown-menu" aria-labelledby="langDropdown">
-                        <li><a class="dropdown-item"
-                                href="<?= htmlspecialchars(app_relative_url('?lang=en'), ENT_QUOTES, 'UTF-8') ?>">English</a>
-                        </li>
-                        <li><a class="dropdown-item"
-                                href="<?= htmlspecialchars(app_relative_url('?lang=fa'), ENT_QUOTES, 'UTF-8') ?>">فارسی</a></li>
-                    </ul>
-                </div>
-                <a class="btn btn-sm btn-outline-secondary" href="<?= htmlspecialchars(app_lang_url('documents.php'), ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars(t('nav.documents'), ENT_QUOTES, 'UTF-8') ?></a>
-                <a class="btn btn-sm btn-outline-secondary" href="<?= htmlspecialchars(app_lang_url('privacy.php'), ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars(t('nav.privacy'), ENT_QUOTES, 'UTF-8') ?></a>
-                <a class="btn btn-sm btn-outline-secondary" href="<?= htmlspecialchars(app_lang_url('mirror.php'), ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars(t('nav.mirror'), ENT_QUOTES, 'UTF-8') ?></a>
-                <button id="themeToggle" type="button" class="btn btn-sm btn-outline-secondary"></button>
-            </div>
-        </div>
+        <?php render_app_navbar(); ?>
 
         <div class="flex-grow-1 d-flex align-items-center">
             <div class="card pane bg-dark-subtle border-secondary-subtle shadow-sm w-100">
