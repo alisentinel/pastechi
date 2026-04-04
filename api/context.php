@@ -12,4 +12,8 @@ json_response([
     'ok' => true,
     'serverTime' => now(),
     'ipHash' => ip_hash(),
+    'requestTokens' => [
+        'create' => issue_api_request_token('create'),
+        'discussionPost' => issue_api_request_token('discussion_post'),
+    ],
 ]);

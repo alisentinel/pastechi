@@ -3,7 +3,6 @@
 
 CREATE TABLE IF NOT EXISTS pastes (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    code VARCHAR(6) NOT NULL COMMENT '6-digit tracking code (reference only)',
     codeHash VARCHAR(64) NOT NULL UNIQUE COMMENT 'SHA256 hash of code + server pepper',
     ciphertext LONGTEXT NOT NULL COMMENT 'Base64-encoded AES-256-GCM ciphertext',
     iv VARCHAR(256) NOT NULL COMMENT 'Base64-encoded initialization vector',

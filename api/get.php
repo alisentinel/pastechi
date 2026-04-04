@@ -25,7 +25,7 @@ try {
 
     if (!is_array($record)) {
         $pdo->commit();
-        app_log('info', 'get_unavailable', ['code' => $code]);
+        app_log('info', 'get_unavailable', ['codeHash' => $codeHash]);
         json_response(['ok' => false, 'error' => 'unavailable'], 404);
     }
 
@@ -38,7 +38,7 @@ try {
         $delete = $pdo->prepare('DELETE FROM pastes WHERE codeHash = :codeHash');
         $delete->execute([':codeHash' => $codeHash]);
         $pdo->commit();
-        app_log('info', 'get_expired_or_consumed', ['code' => $code]);
+        app_log('info', 'get_expired_or_consumed', ['codeHash' => $codeHash]);
         json_response(['ok' => false, 'error' => 'unavailable'], 404);
     }
 
@@ -133,10 +133,10 @@ try {
     if (isset($pdo) && $pdo instanceof PDO && $pdo->inTransaction()) {
         $pdo->rollBack();
     }
-    app_log('error', 'get_storage_read_failed', ['code' => $code, 'error' => $e->getMessage()]);
+    app_log('error', 'get_storage_read_failed', ['codeHash' => $codeHash, 'error' => $e->getMessage()]);
     json_response(['ok' => false, 'error' => 'unavailable'], 404);
 }
 
-app_log('info', 'paste_served', ['code' => $code, 'views' => $views]);
+app_log('info', 'paste_served', ['codeHash' => $codeHash, 'views' => $views]);
 
 json_response($response);

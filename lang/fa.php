@@ -95,6 +95,7 @@ return [
     'js.create.attachment_too_large' => 'حجم پیوست بیش از حد مجاز است. حداکثر {size}.',
     'js.create.attachment_extension_not_allowed' => 'پسوند پیوست مجاز نیست.',
     'js.create.attachment_invalid' => 'پیوست نامعتبر است.',
+    'js.create.invalid_request_token' => 'توکن نشست منقضی شده است. صفحه را رفرش کنید و دوباره تلاش کنید.',
     'js.create.preparing' => 'در حال آماده‌سازی رمزنگاری…',
     'js.create.failed_create' => 'ایجاد پیست ناموفق بود.',
     'js.create.encryption_complete' => 'رمزنگاری کامل شد. پیست آماده است.',
@@ -110,4 +111,5 @@ return [
     'js.view.decrypt_success' => 'رمزگشایی موفق بود.',
     'js.view.decrypt_failed_password' => 'رمزگشایی انجام نشد. رمز عبور و کلید لینک را بررسی کنید.',
     'js.view.decrypt_failed_fragment' => 'رمزگشایی انجام نشد. ممکن است کلید لینک موجود نباشد یا نامعتبر باشد.',
+    'js.view.invalid_request_token' => 'توکن نشست منقضی شده است. صفحه را رفرش کنید و دوباره تلاش کنید.',
 ];

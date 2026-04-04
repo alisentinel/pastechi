@@ -116,6 +116,7 @@ async function createEncryptedPaste({
                 "Content-Type": "application/json",
             },
             body: JSON.stringify({
+                requestToken: String(contextData?.requestTokens?.create || ""),
                 code,
                 envelope,
                 ttlSeconds,
@@ -248,6 +249,8 @@ function renderAttachmentPolicyHint() {
 form?.addEventListener("submit", async (event) => {
     event.preventDefault();
 
+    await fetchContext();
+
     const content = document.getElementById("content").value;
     if (!content.trim()) {
         alert(t("js.create.content_required", "Paste content is required."));
@@ -329,7 +332,12 @@ form?.addEventListener("submit", async (event) => {
         });
 
         if (!result.ok) {
-            alert(result?.data?.error || t("js.create.failed_generic", "Failed to create paste."));
+            const errorCode = result?.data?.error || "";
+            if (errorCode === "invalid_request_token") {
+                alert(t("js.create.invalid_request_token", "Session token expired. Refresh the page and try again."));
+            } else {
+                alert(errorCode || t("js.create.failed_generic", "Failed to create paste."));
+            }
             logClient("error", "create:api_create_failed", { error: result?.data?.error || "unknown" });
             setStatus(t("js.create.failed_create", "Failed to create paste."));
             submitBtn.disabled = false;
@@ -352,7 +360,8 @@ form?.addEventListener("submit", async (event) => {
         alert(message);
         console.error(error);
         logClient("error", "create:unexpected_error", {
-            message,
+            errorType: typeof error,
+            hasMessage: Boolean(error?.message),
         });
         setStatus(message);
     }

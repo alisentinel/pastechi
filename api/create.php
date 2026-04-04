@@ -10,6 +10,13 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
 enforce_rate_limit('create');
 $input = read_json_input(MAX_CREATE_REQUEST_BYTES);
 
+$requestToken = (string) ($input['requestToken'] ?? '');
+if (!verify_api_request_token($requestToken, 'create')) {
+    app_log('warn', 'create_invalid_request_token');
+    random_delay();
+    json_response(['ok' => false, 'error' => 'invalid_request_token'], 403);
+}
+
 $code = (string) ($input['code'] ?? '');
 if (!verify_code($code)) {
     app_log('warn', 'create_invalid_code');
@@ -26,12 +33,16 @@ $ciphertext = (string) ($envelope['ciphertext'] ?? '');
 $iv = (string) ($envelope['iv'] ?? '');
 $salt = (string) ($envelope['salt'] ?? '');
 $kdfIterations = (int) ($envelope['kdfIterations'] ?? 0);
+$alg = strtoupper((string) ($envelope['alg'] ?? ''));
 
 if ($ciphertext === '' || $iv === '' || $salt === '') {
     json_response(['ok' => false, 'error' => 'invalid_envelope'], 400);
 }
-if (strlen($ciphertext) > MAX_CREATE_REQUEST_BYTES || strlen($iv) > 128 || strlen($salt) > 128) {
+if (!verify_envelope_fields($ciphertext, $iv, $salt, MAX_CREATE_REQUEST_BYTES)) {
     json_response(['ok' => false, 'error' => 'payload_too_large'], 413);
+}
+if ($alg !== '' && $alg !== 'AES-GCM') {
+    json_response(['ok' => false, 'error' => 'invalid_algorithm'], 400);
 }
 if ($kdfIterations < MIN_KDF_ITERATIONS || $kdfIterations > MAX_KDF_ITERATIONS) {
     json_response(['ok' => false, 'error' => 'invalid_kdf_iterations'], 400);
@@ -108,7 +119,6 @@ try {
     $pdo = get_db();
     $codeHash = code_hash($code);
     $stmt = $pdo->prepare('INSERT INTO pastes (
-        code,
         codeHash,
         ciphertext,
         iv,
@@ -130,7 +140,6 @@ try {
         password_protected,
         forensics_buckets
     ) VALUES (
-        :code,
         :codeHash,
         :ciphertext,
         :iv,
@@ -154,7 +163,6 @@ try {
     )');
 
     $stmt->execute([
-        ':code' => $code,
         ':codeHash' => $codeHash,
         ':ciphertext' => $ciphertext,
         ':iv' => $iv,
@@ -178,17 +186,17 @@ try {
     ]);
 } catch (PDOException $e) {
     if ((int) $e->getCode() === 23000) {
-        app_log('info', 'create_code_collision', ['code' => $code]);
+        app_log('info', 'create_code_collision', ['codeHash' => $codeHash]);
         random_delay();
         json_response(['ok' => false, 'error' => 'code_unavailable'], 409);
     }
 
-    app_log('error', 'create_storage_write_failed', ['code' => $code, 'error' => $e->getMessage()]);
+    app_log('error', 'create_storage_write_failed', ['codeHash' => $codeHash, 'error' => $e->getMessage()]);
     json_response(['ok' => false, 'error' => 'storage_write_failed'], 500);
 }
 
 app_log('info', 'paste_created', [
-    'code' => $code,
+    'codeHash' => $codeHash,
     'ttlSeconds' => $ttlSeconds,
     'maxViews' => $maxViews,
     'burnAfterRead' => false,

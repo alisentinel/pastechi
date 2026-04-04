@@ -21,16 +21,16 @@ $codeHash = code_hash($code);
 
 try {
     $pdo = get_db();
-    $pasteStmt = $pdo->prepare('SELECT code, modes_discussion, kdfIterations FROM pastes WHERE codeHash = :codeHash');
+    $pasteStmt = $pdo->prepare('SELECT modes_discussion, kdfIterations FROM pastes WHERE codeHash = :codeHash');
     $pasteStmt->execute([':codeHash' => $codeHash]);
     $paste = $pasteStmt->fetch(PDO::FETCH_ASSOC);
 } catch (Throwable $e) {
-    app_log('error', 'discussion_storage_read_failed', ['code' => $code, 'error' => $e->getMessage()]);
+    app_log('error', 'discussion_storage_read_failed', ['codeHash' => $codeHash, 'error' => $e->getMessage()]);
     json_response(['ok' => false, 'error' => 'discussion_unavailable'], 404);
 }
 
 if (!is_array($paste) || ((bool) ($paste['modes_discussion'] ?? false) !== true)) {
-    app_log('info', 'discussion_unavailable', ['code' => $code]);
+    app_log('info', 'discussion_unavailable', ['codeHash' => $codeHash]);
     json_response(['ok' => false, 'error' => 'discussion_unavailable'], 404);
 }
 
@@ -62,6 +62,13 @@ if ($method !== 'POST') {
 }
 
 $input = read_json_input();
+$requestToken = (string) ($input['requestToken'] ?? '');
+if (!verify_api_request_token($requestToken, 'discussion_post')) {
+    app_log('warn', 'discussion_invalid_request_token');
+    random_delay();
+    json_response(['ok' => false, 'error' => 'invalid_request_token'], 403);
+}
+
 $envelope = $input['envelope'] ?? null;
 if (!is_array($envelope)) {
     json_response(['ok' => false, 'error' => 'missing_envelope'], 400);
@@ -69,7 +76,7 @@ if (!is_array($envelope)) {
 
 $ciphertext = (string) ($envelope['ciphertext'] ?? '');
 $iv = (string) ($envelope['iv'] ?? '');
-if ($ciphertext === '' || $iv === '' || strlen($ciphertext) > MAX_MESSAGE_BYTES * 2 || strlen($iv) > 128) {
+if ($ciphertext === '' || !is_base64url_string($ciphertext, MAX_MESSAGE_BYTES * 2) || !preg_match('/^[A-Za-z0-9\-_]{16}$/', $iv)) {
     json_response(['ok' => false, 'error' => 'invalid_message'], 400);
 }
 
@@ -91,10 +98,10 @@ try {
         ':codeHash2' => $codeHash,
     ]);
 } catch (Throwable $e) {
-    app_log('error', 'discussion_storage_write_failed', ['code' => $code, 'error' => $e->getMessage()]);
+    app_log('error', 'discussion_storage_write_failed', ['codeHash' => $codeHash, 'error' => $e->getMessage()]);
     json_response(['ok' => false, 'error' => 'storage_write_failed'], 500);
 }
 
-app_log('info', 'discussion_message_posted', ['code' => $code, 'id' => $newId]);
+app_log('info', 'discussion_message_posted', ['codeHash' => $codeHash, 'id' => $newId]);
 
 json_response(['ok' => true, 'id' => $newId]);

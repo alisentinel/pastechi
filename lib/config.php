@@ -77,7 +77,7 @@ const LOG_DIR = STORAGE_ROOT . '/logs';
 define('MAX_PAYLOAD_BYTES', max(8 * 1024, env_int('MAX_PAYLOAD_BYTES', 1024 * 1024)));
 const MAX_MESSAGE_BYTES = 16 * 1024;
 const MAX_TTL_SECONDS = 60 * 60 * 24 * 7;
-const MIN_KDF_ITERATIONS = 120000;
+const MIN_KDF_ITERATIONS = 260000;
 const MAX_KDF_ITERATIONS = 800000;
 define('ATTACHMENT_MAX_BYTES', max(0, env_int('ATTACHMENT_MAX_BYTES', 5 * 1024 * 1024)));
 define('ATTACHMENT_ALLOWED_EXTENSIONS', env_string('ATTACHMENT_ALLOWED_EXTENSIONS', '*'));
@@ -88,6 +88,7 @@ define(
         env_int('MAX_CREATE_REQUEST_BYTES', (MAX_PAYLOAD_BYTES * 2) + (ATTACHMENT_MAX_BYTES * 3) + (512 * 1024))
     )
 );
+define('APP_ENFORCE_HTTPS', env_int('APP_ENFORCE_HTTPS', 1));
 
 const RATE_WINDOWS = [
     'create' => ['seconds' => 60, 'max' => 12],
@@ -101,9 +102,10 @@ const RATE_WINDOWS = [
 const MIN_DELAY_MS = 200;
 const MAX_DELAY_MS = 550;
 
-const SERVER_PEPPER = 'change-me-in-production-32-random-bytes';
+define('SERVER_PEPPER', env_string('SERVER_PEPPER', 'change-me-in-production-32-random-bytes'));
 const FORENSIC_BUCKET_SECONDS = 3600;
 const MAX_LOG_LINE_BYTES = 4096;
+const API_REQUEST_TOKEN_TTL_SECONDS = 180;
 
 function attachment_allowed_extensions_list(): array
 {
@@ -182,3 +184,79 @@ function app_relative_url(string $path = ''): string
 
     return ltrim($raw, '/');
 }
+
+function is_cli_runtime(): bool
+{
+    return PHP_SAPI === 'cli' || PHP_SAPI === 'phpdbg';
+}
+
+function request_host(): string
+{
+    $host = (string) ($_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? '');
+    $host = strtolower(trim($host));
+    if ($host === '') {
+        return '';
+    }
+
+    if (str_contains($host, ':')) {
+        $parts = explode(':', $host, 2);
+        $host = $parts[0];
+    }
+
+    return $host;
+}
+
+function is_local_host(string $host): bool
+{
+    if ($host === '' || $host === 'localhost' || $host === '127.0.0.1' || $host === '::1') {
+        return true;
+    }
+
+    return str_ends_with($host, '.localhost');
+}
+
+function request_is_secure(): bool
+{
+    $https = strtolower((string) ($_SERVER['HTTPS'] ?? ''));
+    if ($https !== '' && $https !== 'off' && $https !== '0') {
+        return true;
+    }
+
+    if ((int) ($_SERVER['SERVER_PORT'] ?? 0) === 443) {
+        return true;
+    }
+
+    $forwardedProto = strtolower((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? ''));
+    if (str_contains($forwardedProto, 'https')) {
+        return true;
+    }
+
+    $forwardedSsl = strtolower((string) ($_SERVER['HTTP_X_FORWARDED_SSL'] ?? ''));
+    if ($forwardedSsl === 'on') {
+        return true;
+    }
+
+    return false;
+}
+
+function enforce_https_if_needed(): void
+{
+    if (is_cli_runtime() || (int) APP_ENFORCE_HTTPS !== 1) {
+        return;
+    }
+
+    $host = request_host();
+    if ($host === '' || is_local_host($host) || request_is_secure()) {
+        return;
+    }
+
+    $uri = (string) ($_SERVER['REQUEST_URI'] ?? '/');
+    if ($uri === '') {
+        $uri = '/';
+    }
+
+    header('Location: https://' . $host . $uri, true, 307);
+    exit;
+}
+
+enforce_https_if_needed();

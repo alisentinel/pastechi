@@ -94,6 +94,7 @@ return [
     'js.create.attachment_disabled' => 'Attachments are disabled by server policy.',
     'js.create.attachment_too_large' => 'Attachment is too large. Maximum allowed is {size}.',
     'js.create.attachment_extension_not_allowed' => 'Attachment extension is not allowed.',
+    'js.create.invalid_request_token' => 'Session token expired. Refresh the page and try again.',
     'js.create.attachment_invalid' => 'Invalid attachment.',
     'js.create.preparing' => 'Preparing encryption…',
     'js.create.failed_create' => 'Failed to create paste.',
@@ -110,4 +111,5 @@ return [
     'js.view.decrypt_success' => 'Decryption successful.',
     'js.view.decrypt_failed_password' => 'Unable to decrypt. Check password and link fragment.',
     'js.view.decrypt_failed_fragment' => 'Unable to decrypt. The link key may be missing or invalid.',
+    'js.view.invalid_request_token' => 'Session token expired. Refresh the page and try again.',
 ];

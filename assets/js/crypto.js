@@ -15,7 +15,7 @@ function getSubtleOrThrow() {
     const subtle = cryptoObj?.subtle || cryptoObj?.webkitSubtle;
     if (!subtle) {
         const origin = globalThis.location?.origin || "this origin";
-        throw new Error(`SubtleCrypto is unavailable at ${origin}. Use HTTPS or localhost in a modern browser.`);
+        throw new Error(`SubtleCrypto is unavailable at ${origin}. Open this site over HTTPS (recommended) or use http://localhost during local development.`);
     }
     return subtle;
 }
@@ -62,7 +62,10 @@ export function randomSecret() {
 }
 
 export function generateTrackingCode() {
-    return String(Math.floor(Math.random() * 1000000)).padStart(6, "0");
+    const bytes = randomBytes(4);
+    const value = (bytes[0] << 24) | (bytes[1] << 16) | (bytes[2] << 8) | bytes[3];
+    const normalized = (value >>> 0) % 1000000;
+    return String(normalized).padStart(6, "0");
 }
 
 export async function sha256Hex(input) {

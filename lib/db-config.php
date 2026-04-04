@@ -156,6 +156,30 @@ function write_env_file(
     $envPath = dirname(__DIR__) . '/.env';
     $safeAppName = str_replace(["\r", "\n"], ' ', trim($appName));
     $safeAttachmentExt = str_replace(["\r", "\n"], '', trim($attachmentAllowedExtensions));
+    $serverPepper = '';
+
+    if (is_readable($envPath)) {
+        $existingLines = file($envPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+        if (is_array($existingLines)) {
+            foreach ($existingLines as $line) {
+                $line = trim((string) $line);
+                if (!str_starts_with($line, 'SERVER_PEPPER=')) {
+                    continue;
+                }
+                [, $value] = explode('=', $line, 2);
+                $serverPepper = trim(trim((string) $value), "\"'");
+                break;
+            }
+        }
+    }
+
+    if ($serverPepper === '') {
+        try {
+            $serverPepper = bin2hex(random_bytes(32));
+        } catch (Throwable $e) {
+            $serverPepper = hash('sha256', uniqid('', true) . microtime(true));
+        }
+    }
 
     $content = "# PasteChi Configuration\n"
         . 'APP_NAME=' . $safeAppName . "\n\n"
@@ -165,6 +189,8 @@ function write_env_file(
         . 'DB_NAME=' . $name . "\n"
         . 'DB_USER=' . $user . "\n"
         . 'DB_PASS=' . $pass . "\n\n"
+        . "# Security\n"
+        . 'SERVER_PEPPER=' . $serverPepper . "\n\n"
         . "# Payload & Attachment Policy\n"
         . 'MAX_PAYLOAD_BYTES=' . $maxPayloadBytes . "\n"
         . 'ATTACHMENT_MAX_BYTES=' . $attachmentMaxBytes . "\n"
@@ -203,6 +229,27 @@ function db_table_exists(PDO $pdo, string $table): bool
     return (bool) $stmt->fetchColumn();
 }
 
+function db_drop_foreign_keys_for_column(PDO $pdo, string $table, string $column): void
+{
+    $stmt = $pdo->prepare('SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = :table_name AND COLUMN_NAME = :column_name AND REFERENCED_TABLE_NAME IS NOT NULL');
+    $stmt->execute([
+        ':table_name' => $table,
+        ':column_name' => $column,
+    ]);
+
+    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+        $name = (string) ($row['CONSTRAINT_NAME'] ?? '');
+        if ($name === '') {
+            continue;
+        }
+        try {
+            $pdo->exec(sprintf('ALTER TABLE `%s` DROP FOREIGN KEY `%s`', $table, $name));
+        } catch (Throwable $e) {
+            // Best effort.
+        }
+    }
+}
+
 function ensure_database_schema(): void
 {
     static $initialized = false;
@@ -214,7 +261,6 @@ function ensure_database_schema(): void
 
     $pdo->exec("CREATE TABLE IF NOT EXISTS pastes (
         id BIGINT AUTO_INCREMENT PRIMARY KEY,
-        code VARCHAR(6) NOT NULL,
         codeHash VARCHAR(64) NOT NULL UNIQUE,
         ciphertext LONGTEXT NOT NULL,
         iv VARCHAR(256) NOT NULL,
@@ -289,8 +335,50 @@ function ensure_database_schema(): void
     db_add_column_if_missing($pdo, 'pastes', 'password_protected', 'BOOLEAN NOT NULL DEFAULT TRUE');
     db_add_column_if_missing($pdo, 'pastes', 'forensics_buckets', 'JSON DEFAULT NULL');
 
-    $pdo->prepare("UPDATE pastes SET codeHash = SHA2(CONCAT(:pepper, '|code|', code), 256) WHERE codeHash IS NULL OR codeHash = ''")
-        ->execute([':pepper' => (string) SERVER_PEPPER]);
+    // Legacy upgrade path: move from plaintext-code PK schema to hash-based schema.
+    if (db_column_exists($pdo, 'pastes', 'code')) {
+        if (db_table_exists($pdo, 'discussions') && db_column_exists($pdo, 'discussions', 'paste_code')) {
+            db_drop_foreign_keys_for_column($pdo, 'discussions', 'paste_code');
+        }
+
+        $pdo->prepare("UPDATE pastes SET codeHash = SHA2(CONCAT(:pepper, '|code|', code), 256) WHERE (codeHash IS NULL OR codeHash = '') AND code IS NOT NULL AND code <> ''")
+            ->execute([':pepper' => (string) SERVER_PEPPER]);
+
+        if (!db_column_exists($pdo, 'pastes', 'id')) {
+            try {
+                $pdo->exec('ALTER TABLE pastes ADD COLUMN id BIGINT AUTO_INCREMENT UNIQUE');
+            } catch (Throwable $e) {
+                // Best effort.
+            }
+        }
+
+        try {
+            $pdo->exec('ALTER TABLE pastes DROP PRIMARY KEY');
+        } catch (Throwable $e) {
+            // Primary key may already be updated.
+        }
+
+        if (db_column_exists($pdo, 'pastes', 'id')) {
+            try {
+                $pdo->exec('ALTER TABLE pastes ADD PRIMARY KEY (id)');
+            } catch (Throwable $e) {
+                // Primary key may already exist.
+            }
+        }
+
+        try {
+            $pdo->exec('ALTER TABLE pastes MODIFY COLUMN codeHash VARCHAR(64) NOT NULL');
+        } catch (Throwable $e) {
+            // Column definition may already match.
+        }
+
+        try {
+            $pdo->exec('ALTER TABLE pastes MODIFY COLUMN code VARCHAR(6) NULL DEFAULT NULL');
+        } catch (Throwable $e) {
+            // Column definition may already match.
+        }
+
+    }
 
     try {
         $pdo->exec('ALTER TABLE pastes ADD UNIQUE INDEX idx_codeHash (codeHash)');
@@ -299,13 +387,12 @@ function ensure_database_schema(): void
     }
 
     if (db_column_exists($pdo, 'discussions', 'paste_code') && !db_column_exists($pdo, 'discussions', 'paste_codeHash')) {
-        $pdo->exec('ALTER TABLE discussions ADD COLUMN paste_codeHash VARCHAR(64) NULL');
-        $pdo->exec("UPDATE discussions d INNER JOIN pastes p ON p.code = d.paste_code SET d.paste_codeHash = p.codeHash WHERE d.paste_codeHash IS NULL OR d.paste_codeHash = ''");
-        $pdo->exec('ALTER TABLE discussions MODIFY COLUMN paste_codeHash VARCHAR(64) NOT NULL');
         try {
-            $pdo->exec('ALTER TABLE discussions MODIFY COLUMN paste_code VARCHAR(6) NULL');
+            $pdo->exec('ALTER TABLE discussions ADD COLUMN paste_codeHash VARCHAR(64) NULL');
+            $pdo->exec("UPDATE discussions d INNER JOIN pastes p ON p.code = d.paste_code SET d.paste_codeHash = p.codeHash WHERE d.paste_codeHash IS NULL OR d.paste_codeHash = ''");
+            $pdo->exec('ALTER TABLE discussions MODIFY COLUMN paste_codeHash VARCHAR(64) NOT NULL');
         } catch (Throwable $e) {
-            // ignore
+            // Best effort migration.
         }
     }
 
@@ -320,6 +407,14 @@ function ensure_database_schema(): void
             $pdo->exec('ALTER TABLE discussions ADD CONSTRAINT fk_discussions_codehash FOREIGN KEY (paste_codeHash) REFERENCES pastes(codeHash) ON DELETE CASCADE');
         } catch (Throwable $e) {
             // FK may already exist.
+        }
+    }
+
+    if (db_column_exists($pdo, 'pastes', 'code')) {
+        try {
+            $pdo->exec('UPDATE pastes SET code = NULL WHERE code IS NOT NULL AND code <> ""');
+        } catch (Throwable $e) {
+            // Best effort scrub of legacy plaintext codes.
         }
     }
 

@@ -46,7 +46,22 @@ function ensure_storage(): void
 
 function redact_context(array $context): array
 {
-    $sensitive = ['password', 'plaintext', 'content', 'ciphertext', 'urlSecret', 'secret', 'token', 'key', 'hash'];
+    $sensitive = [
+        'password',
+        'plaintext',
+        'content',
+        'ciphertext',
+        'urlSecret',
+        'secret',
+        'token',
+        'key',
+        'hash',
+        'code',
+        'ip',
+        'remote',
+        'forwarded',
+        'address',
+    ];
     $clean = [];
     foreach ($context as $key => $value) {
         $name = strtolower((string) $key);
@@ -74,13 +89,34 @@ function redact_context(array $context): array
     return $clean;
 }
 
+function sanitize_log_path(string $rawPath): string
+{
+    $path = parse_url($rawPath, PHP_URL_PATH);
+    if (!is_string($path) || $path === '') {
+        $path = '/';
+    }
+
+    // Replace 6-digit code segments with a stable hash prefix before persisting logs.
+    return preg_replace_callback(
+        '#(?<=/)([0-9]{6})(?=/|$)#',
+        static function (array $matches): string {
+            $code = (string) ($matches[1] ?? '');
+            if (!verify_code($code)) {
+                return 'code';
+            }
+            return 'code_' . substr(code_hash($code), 0, 12);
+        },
+        $path
+    ) ?? '/';
+}
+
 function app_log(string $level, string $message, array $context = []): void
 {
     $record = [
         'ts' => now(),
         'level' => strtolower($level),
         'message' => substr($message, 0, 200),
-        'path' => (string) ($_SERVER['REQUEST_URI'] ?? ''),
+        'path' => sanitize_log_path((string) ($_SERVER['REQUEST_URI'] ?? '')),
         'context' => redact_context($context),
     ];
 
@@ -149,6 +185,119 @@ function ip_hash(): string
 function verify_code(string $code): bool
 {
     return (bool) preg_match('/^[0-9]{6}$/', $code);
+}
+
+function is_base64url_string(string $value, int $maxLength = 0): bool
+{
+    if ($value === '') {
+        return false;
+    }
+
+    if (!preg_match('/^[A-Za-z0-9\-_]+$/', $value)) {
+        return false;
+    }
+
+    if ($maxLength > 0 && strlen($value) > $maxLength) {
+        return false;
+    }
+
+    return true;
+}
+
+function verify_envelope_fields(string $ciphertext, string $iv, string $salt, int $ciphertextMaxBytes): bool
+{
+    if (!is_base64url_string($ciphertext)) {
+        return false;
+    }
+
+    // AES-GCM IV is 96-bit (12 bytes) => 16 base64url chars without padding.
+    if (!preg_match('/^[A-Za-z0-9\-_]{16}$/', $iv)) {
+        return false;
+    }
+
+    // PBKDF2 salt is 16 bytes in this app => 22 base64url chars without padding.
+    if (!preg_match('/^[A-Za-z0-9\-_]{22}$/', $salt)) {
+        return false;
+    }
+
+    return strlen($ciphertext) <= $ciphertextMaxBytes;
+}
+
+function base64url_encode(string $raw): string
+{
+    return rtrim(strtr(base64_encode($raw), '+/', '-_'), '=');
+}
+
+function base64url_decode(string $encoded): string|false
+{
+    $padded = strtr($encoded, '-_', '+/');
+    $padding = strlen($padded) % 4;
+    if ($padding > 0) {
+        $padded .= str_repeat('=', 4 - $padding);
+    }
+    return base64_decode($padded, true);
+}
+
+function issue_api_request_token(string $scope, int $ttlSeconds = API_REQUEST_TOKEN_TTL_SECONDS): string
+{
+    $issuedAt = now();
+    $nonce = bin2hex(random_bytes(16));
+    $payload = $scope . '|' . $issuedAt . '|' . ip_hash() . '|' . $nonce;
+    $signature = hash_hmac('sha256', $payload, (string) SERVER_PEPPER);
+    $token = json_encode([
+        's' => $scope,
+        'iat' => $issuedAt,
+        'ttl' => max(10, $ttlSeconds),
+        'n' => $nonce,
+        'sig' => $signature,
+    ], JSON_UNESCAPED_SLASHES);
+    if (!is_string($token)) {
+        return '';
+    }
+
+    return base64url_encode($token);
+}
+
+function verify_api_request_token(string $token, string $expectedScope): bool
+{
+    if (!is_base64url_string($token, 2048)) {
+        return false;
+    }
+
+    $decoded = base64url_decode($token);
+    if (!is_string($decoded) || $decoded === '') {
+        return false;
+    }
+
+    $data = json_decode($decoded, true);
+    if (!is_array($data)) {
+        return false;
+    }
+
+    $scope = (string) ($data['s'] ?? '');
+    $issuedAt = (int) ($data['iat'] ?? 0);
+    $ttl = (int) ($data['ttl'] ?? 0);
+    $nonce = (string) ($data['n'] ?? '');
+    $sig = (string) ($data['sig'] ?? '');
+
+    if ($scope !== $expectedScope || $scope === '' || $issuedAt <= 0 || $ttl <= 0 || $nonce === '' || $sig === '') {
+        return false;
+    }
+
+    $maxTtl = max(30, API_REQUEST_TOKEN_TTL_SECONDS * 2);
+    if ($ttl > $maxTtl) {
+        return false;
+    }
+
+    $age = now() - $issuedAt;
+    if ($age < -10 || $age > $ttl) {
+        return false;
+    }
+
+    $payload = $scope . '|' . $issuedAt . '|' . ip_hash() . '|' . $nonce;
+    $expectedSig = hash_hmac('sha256', $payload, (string) SERVER_PEPPER);
+
+    return hash_equals($expectedSig, $sig);
 }
 
 function code_hash(string $code): string

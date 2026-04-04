@@ -66,7 +66,7 @@ async function fetchContext() {
         }
     } catch (_error) {
         contextData = { ipHash: "" };
-        logClient("warn", "view:context_fetch_failed", { code });
+        logClient("warn", "view:context_fetch_failed");
     }
 }
 
@@ -84,7 +84,7 @@ async function loadPaste() {
     if (!data?.ok) {
         displayStatus(t("js.view.unavailable", "Paste unavailable or already destroyed."));
         decryptForm.classList.add("d-none");
-        logClient("warn", "view:paste_unavailable", { code });
+        logClient("warn", "view:paste_unavailable");
         return;
     }
 
@@ -94,7 +94,7 @@ async function loadPaste() {
         const readable = new Date(Number(data.lockUntil) * 1000).toISOString();
         displayStatus(t("js.view.timelocked", `Paste is time-locked until ${readable}`, { time: readable }));
         decryptForm.classList.add("d-none");
-        logClient("info", "view:paste_timelocked", { code });
+        logClient("info", "view:paste_timelocked");
         return;
     }
 
@@ -215,14 +215,14 @@ async function attemptDecrypt(password) {
         const bindingMatches = await verifyBinding(payload);
         if (!bindingMatches) {
             displayStatus(t("js.view.binding_mismatch", "This paste is bound to a different client context."));
-            logClient("warn", "view:binding_mismatch", { code });
+            logClient("warn", "view:binding_mismatch");
             return;
         }
 
         currentPassword = password;
         displayStatus(t("js.view.decrypt_success", "Decryption successful."));
         renderPaste(payload);
-        logClient("info", "view:decrypt_success", { code, hasDiscussion: Boolean(pasteData.modes?.discussion) });
+        logClient("info", "view:decrypt_success", { hasDiscussion: Boolean(pasteData.modes?.discussion) });
 
         if (pasteData.modes?.discussion) {
             discussionCard.classList.remove("d-none");
@@ -241,7 +241,7 @@ async function attemptDecrypt(password) {
         } else {
             displayStatus(t("js.view.decrypt_failed_fragment", "Unable to decrypt. The link key may be missing or invalid."));
         }
-        logClient("warn", "view:decrypt_failed", { code });
+        logClient("warn", "view:decrypt_failed");
     }
 }
 
@@ -284,20 +284,27 @@ discussionForm?.addEventListener("submit", async (event) => {
         return;
     }
 
+    await fetchContext();
+
     const envelope = await encryptDiscussionMessage(text, discussionParams);
     const response = await fetch(`api/discussion.php?code=${encodeURIComponent(code)}`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
         },
-        body: JSON.stringify({ envelope }),
+        body: JSON.stringify({
+            requestToken: String(contextData?.requestTokens?.discussionPost || ""),
+            envelope,
+        }),
     });
     const data = await response.json();
     if (data?.ok) {
         discussionInput.value = "";
         await loadDiscussion();
+    } else if (data?.error === "invalid_request_token") {
+        displayStatus(t("js.view.invalid_request_token", "Session token expired. Refresh the page and try again."));
     } else {
-        logClient("warn", "view:discussion_post_failed", { code });
+        logClient("warn", "view:discussion_post_failed");
     }
 });
 
