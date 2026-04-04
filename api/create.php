@@ -108,11 +108,18 @@ $accessInput = $input['access'] ?? [];
 $requiresFragment = (bool) ($accessInput['requiresFragment'] ?? true);
 $passwordProtected = (bool) ($accessInput['passwordProtected'] ?? false);
 $discussionSalt = (string) ($input['discussionSalt'] ?? '');
+$discussionAuthorKey = (string) ($input['discussionAuthorKey'] ?? '');
 if ($discussionEnabled && $discussionSalt === '') {
     json_response(['ok' => false, 'error' => 'missing_discussion_salt'], 400);
 }
 if ($discussionEnabled && strlen($discussionSalt) > 128) {
     json_response(['ok' => false, 'error' => 'invalid_discussion_salt'], 400);
+}
+if ($discussionEnabled && !is_base64url_string($discussionAuthorKey, 128)) {
+    json_response(['ok' => false, 'error' => 'invalid_discussion_author_key'], 400);
+}
+if (!$discussionEnabled) {
+    $discussionAuthorKey = '';
 }
 
 try {
@@ -136,6 +143,7 @@ try {
         modes_discussion,
         modes_forensics,
         discussion_salt,
+        discussion_author_key,
         requires_fragment,
         password_protected,
         forensics_buckets
@@ -157,6 +165,7 @@ try {
         :modes_discussion,
         :modes_forensics,
         :discussion_salt,
+        :discussion_author_key,
         :requires_fragment,
         :password_protected,
         :forensics_buckets
@@ -180,6 +189,7 @@ try {
         ':modes_discussion' => $discussionEnabled ? 1 : 0,
         ':modes_forensics' => $forensicsEnabled ? 1 : 0,
         ':discussion_salt' => $discussionSalt,
+        ':discussion_author_key' => $discussionAuthorKey,
         ':requires_fragment' => $requiresFragment ? 1 : 0,
         ':password_protected' => $passwordProtected ? 1 : 0,
         ':forensics_buckets' => '{}',

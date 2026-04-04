@@ -17,7 +17,8 @@ if (!preg_match('/^[0-9]{6}$/', $code)) {
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><?= htmlspecialchars(t('home.open_button'), ENT_QUOTES, 'UTF-8') ?> <?= htmlspecialchars($code, ENT_QUOTES, 'UTF-8') ?> · <?= APP_NAME ?></title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link rel="stylesheet" href="<?= htmlspecialchars(app_relative_url('assets/vendor/bootstrap/css/bootstrap.min.css'), ENT_QUOTES, 'UTF-8') ?>">
+    <link rel="stylesheet" href="<?= htmlspecialchars(app_relative_url('assets/vendor/highlight/github-dark.min.css'), ENT_QUOTES, 'UTF-8') ?>">
     <link rel="stylesheet" href="<?= htmlspecialchars(app_relative_url('assets/css/styles.css'), ENT_QUOTES, 'UTF-8') ?>">
 </head>
 <body data-code="<?= htmlspecialchars($code, ENT_QUOTES, 'UTF-8') ?>" class="text-light" data-theme="dark">
@@ -75,10 +76,13 @@ if (!preg_match('/^[0-9]{6}$/', $code)) {
     <section id="discussionCard" class="card pane bg-dark-subtle border-secondary-subtle shadow-sm d-none">
         <div class="card-body">
             <h2 class="h6"><?= htmlspecialchars(t('paste.discussion'), ENT_QUOTES, 'UTF-8') ?></h2>
-            <div id="discussionList" class="vstack gap-2 mb-3"></div>
-            <form id="discussionForm" class="input-group">
-                <input id="discussionInput" class="form-control" type="text" placeholder="<?= htmlspecialchars(t('paste.message_placeholder'), ENT_QUOTES, 'UTF-8') ?>" maxlength="2000">
-                <button type="submit" class="btn btn-outline-light"><?= htmlspecialchars(t('paste.send'), ENT_QUOTES, 'UTF-8') ?></button>
+            <div id="discussionList" class="chat-thread mb-3"></div>
+            <form id="discussionForm">
+                <textarea id="discussionInput" class="form-control mb-2" rows="3" placeholder="<?= htmlspecialchars(t('paste.message_placeholder'), ENT_QUOTES, 'UTF-8') ?>" maxlength="2000"></textarea>
+                <div class="d-flex align-items-center justify-content-between gap-2">
+                    <small class="text-secondary">Enter to send, Shift+Enter for new line</small>
+                    <button type="submit" class="btn btn-sm btn-outline-light"><?= htmlspecialchars(t('paste.send'), ENT_QUOTES, 'UTF-8') ?></button>
+                </div>
             </form>
         </div>
     </section>
@@ -86,8 +90,9 @@ if (!preg_match('/^[0-9]{6}$/', $code)) {
 <script>window.__APP_BASE = <?= json_encode(app_base_path(), JSON_UNESCAPED_SLASHES) ?>;</script>
 <script>window.__I18N = <?= json_encode(i18n_messages(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;</script>
 <script>window.__APP_LANG = <?= json_encode(current_lang(), JSON_UNESCAPED_SLASHES) ?>;</script>
+<script src="<?= htmlspecialchars(app_relative_url('assets/vendor/highlight/highlight.min.js'), ENT_QUOTES, 'UTF-8') ?>"></script>
 <script type="module" src="<?= htmlspecialchars(app_relative_url('assets/js/ui.js?v=20260327a'), ENT_QUOTES, 'UTF-8') ?>"></script>
 <script type="module" src="<?= htmlspecialchars(app_relative_url('assets/js/view.js?v=20260327g'), ENT_QUOTES, 'UTF-8') ?>"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+<script src="<?= htmlspecialchars(app_relative_url('assets/vendor/bootstrap/js/bootstrap.bundle.min.js'), ENT_QUOTES, 'UTF-8') ?>"></script>
 </body>
 </html>

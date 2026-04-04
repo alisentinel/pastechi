@@ -23,6 +23,9 @@ const submitBtn = document.getElementById("submitBtn");
 const createAnotherBtn = document.getElementById("createAnotherBtn");
 const attachmentInput = document.getElementById("attachment");
 const attachmentPolicyHint = document.getElementById("attachmentPolicyHint");
+const messageBlocksEl = document.getElementById("messageBlocks");
+const messageBlockTemplate = document.getElementById("messageBlockTemplate");
+const addMessageBtn = document.getElementById("addMessageBtn");
 const currentLang = window.__APP_LANG || "en";
 const attachmentPolicy = window.__ATTACHMENT_POLICY || {
     maxBytes: 0,
@@ -79,6 +82,94 @@ function showCreateResult() {
     resultBox?.classList.remove("d-none");
 }
 
+function normalizeMessages(messages) {
+    return messages
+        .map((item) => String(item || "").trim())
+        .filter((item) => item.length > 0)
+        .map((item, index) => ({
+            role: "paste",
+            text: item,
+            order: index,
+        }));
+}
+
+function refreshMessageBlockState() {
+    if (!messageBlocksEl) {
+        return;
+    }
+
+    const blocks = Array.from(messageBlocksEl.querySelectorAll(".message-block"));
+    blocks.forEach((block, index) => {
+        const label = block.querySelector(".message-block-label");
+        if (label) {
+            label.textContent = `Paste ${index + 1}`;
+        }
+
+        const removeButton = block.querySelector(".remove-message-btn");
+        if (removeButton) {
+            removeButton.disabled = blocks.length <= 1;
+        }
+    });
+}
+
+function addMessageBlock(value = "") {
+    if (!messageBlocksEl || !messageBlockTemplate) {
+        return;
+    }
+
+    const fragment = messageBlockTemplate.content.cloneNode(true);
+    const input = fragment.querySelector(".message-input");
+    const removeButton = fragment.querySelector(".remove-message-btn");
+
+    if (input) {
+        input.value = value;
+    }
+
+    removeButton?.addEventListener("click", () => {
+        const blocks = messageBlocksEl.querySelectorAll(".message-block");
+        if (blocks.length <= 1) {
+            return;
+        }
+        removeButton.closest(".message-block")?.remove();
+        refreshMessageBlockState();
+    });
+
+    messageBlocksEl.appendChild(fragment);
+    refreshMessageBlockState();
+}
+
+function collectMessageInputs() {
+    if (!messageBlocksEl) {
+        return [];
+    }
+
+    const values = Array.from(messageBlocksEl.querySelectorAll(".message-input"))
+        .map((input) => input.value || "");
+    return normalizeMessages(values);
+}
+
+function getCookiePath() {
+    const configured = typeof window.__APP_BASE === "string" ? window.__APP_BASE : "";
+    if (!configured || configured === "/") {
+        return "/";
+    }
+    return configured.startsWith("/") ? configured : `/${configured}`;
+}
+
+function setDiscussionAuthorCookie(code, authorKey, ttlSeconds) {
+    if (!code || !authorKey) {
+        return;
+    }
+
+    const maxAge = Number(ttlSeconds) > 0 ? Number(ttlSeconds) : (60 * 60 * 24 * 30);
+    const secure = window.location.protocol === "https:" ? "; Secure" : "";
+    document.cookie = `pastechi_author_${encodeURIComponent(code)}=${encodeURIComponent(authorKey)}; Max-Age=${maxAge}; Path=${getCookiePath()}; SameSite=Lax${secure}`;
+}
+
+function generateDiscussionAuthorKey() {
+    return `${randomSecret()}${randomSalt()}`;
+}
+
 async function createEncryptedPaste({
     payload,
     attachmentMeta,
@@ -92,6 +183,7 @@ async function createEncryptedPaste({
     bindingType,
     bindingHash,
     discussion,
+    discussionAuthorKey,
     forensics,
     access,
 }) {
@@ -133,6 +225,7 @@ async function createEncryptedPaste({
                 },
                 access,
                 discussionSalt: discussion ? randomSalt() : "",
+                discussionAuthorKey: discussion ? discussionAuthorKey : "",
                 attachmentMeta,
             }),
         });
@@ -251,8 +344,8 @@ form?.addEventListener("submit", async (event) => {
 
     await fetchContext();
 
-    const content = document.getElementById("content").value;
-    if (!content.trim()) {
+    const messages = collectMessageInputs();
+    if (messages.length === 0) {
         alert(t("js.create.content_required", "Paste content is required."));
         return;
     }
@@ -268,6 +361,7 @@ form?.addEventListener("submit", async (event) => {
     const forensics = document.getElementById("forensicsMode").checked;
     const useFragmentKey = document.getElementById("useFragmentKey").checked;
     const attachmentFile = getSelectedAttachmentFile();
+    const discussionAuthorKey = discussion ? generateDiscussionAuthorKey() : "";
 
     let attachmentMeta = null;
     let attachmentPayload = null;
@@ -298,7 +392,8 @@ form?.addEventListener("submit", async (event) => {
 
     const payload = {
         title,
-        content,
+        content: messages[0]?.text || "",
+        messages,
         binding: {
             type: bindingType,
             hash: bindingHash,
@@ -324,6 +419,7 @@ form?.addEventListener("submit", async (event) => {
             bindingType,
             bindingHash,
             discussion,
+            discussionAuthorKey,
             forensics,
             access: {
                 requiresFragment: useFragmentKey,
@@ -352,6 +448,9 @@ form?.addEventListener("submit", async (event) => {
         shareLink.textContent = localizedShareUrl;
         trackingCodeResultEl.textContent = result.code;
         renderQrCode(localizedShareUrl);
+        if (discussion && discussionAuthorKey) {
+            setDiscussionAuthorCookie(result.code, discussionAuthorKey, ttlSeconds);
+        }
         showCreateResult();
         setStatus(t("js.create.encryption_complete", "Encryption complete. Paste is ready."));
         logClient("info", "create:paste_created", { discussion, forensics });
@@ -375,6 +474,10 @@ renderAttachmentPolicyHint();
 
 createAnotherBtn?.addEventListener("click", () => {
     form?.reset();
+    if (messageBlocksEl) {
+        messageBlocksEl.innerHTML = "";
+    }
+    addMessageBlock();
     setStatus("");
     submitBtn.disabled = false;
     shareLink.href = "#";
@@ -382,5 +485,16 @@ createAnotherBtn?.addEventListener("click", () => {
     trackingCodeResultEl.textContent = "";
     qrCodeEl.innerHTML = "";
     showCreateForm();
-    document.getElementById("content")?.focus();
+    messageBlocksEl.querySelector(".message-input")?.focus();
 });
+
+addMessageBtn?.addEventListener("click", () => {
+    addMessageBlock();
+    const blocks = messageBlocksEl?.querySelectorAll(".message-input") || [];
+    const latest = blocks[blocks.length - 1];
+    latest?.focus();
+});
+
+if (messageBlocksEl && messageBlocksEl.children.length === 0) {
+    addMessageBlock();
+}

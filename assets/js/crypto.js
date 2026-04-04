@@ -180,6 +180,7 @@ export async function encryptDiscussionMessage(message, params) {
     const subtle = getSubtleOrThrow();
     const key = await deriveDiscussionKey(params);
     const iv = randomBytes(12);
+    const normalizedMessage = typeof message === "string" ? message : JSON.stringify(message);
     const ciphertext = await subtle.encrypt(
         {
             name: "AES-GCM",
@@ -188,7 +189,7 @@ export async function encryptDiscussionMessage(message, params) {
             tagLength: 128,
         },
         key,
-        encoder.encode(message),
+        encoder.encode(normalizedMessage),
     );
 
     return {
@@ -210,7 +211,22 @@ export async function decryptDiscussionMessage(envelope, params) {
         key,
         b64UrlToBytes(envelope.ciphertext),
     );
-    return decoder.decode(plaintext);
+    const text = decoder.decode(plaintext);
+    try {
+        const parsed = JSON.parse(text);
+        if (parsed && typeof parsed === "object" && typeof parsed.text === "string") {
+            return {
+                text: parsed.text,
+                authorKey: typeof parsed.authorKey === "string" ? parsed.authorKey : "",
+            };
+        }
+    } catch (_error) {
+    }
+
+    return {
+        text,
+        authorKey: "",
+    };
 }
 
 export function parseUrlSecret() {
