@@ -37,6 +37,7 @@ let decryptedAttachment = null;
 let discussionPollHandle = null;
 const authorRoleMap = new Map();
 let participantCounter = 0;
+const renderedMessageIds = new Set();
 
 function t(key, fallback, replacements = {}) {
     let text = window.__I18N?.[key] || fallback;
@@ -396,9 +397,14 @@ async function loadDiscussion() {
 
         for (const message of data.messages) {
             try {
+                const messageId = Number(message.id || 0);
+                if (renderedMessageIds.has(messageId)) {
+                    continue;
+                }
                 const plaintext = await decryptDiscussionMessage(message, discussionParams);
                 renderDiscussionBubble(message, plaintext);
-                discussionCursor = Math.max(discussionCursor, Number(message.id || 0));
+                discussionCursor = Math.max(discussionCursor, messageId);
+                renderedMessageIds.add(messageId);
             } catch (_error) {
             }
         }
@@ -409,6 +415,11 @@ async function loadDiscussion() {
 function startDiscussionPolling() {
     if (discussionPollHandle) {
         window.clearInterval(discussionPollHandle);
+    }
+    discussionCursor = 0;
+    renderedMessageIds.clear();
+    if (discussionList) {
+        discussionList.innerHTML = "";
     }
     loadDiscussion();
     discussionPollHandle = window.setInterval(loadDiscussion, 4000);
