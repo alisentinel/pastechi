@@ -71,6 +71,9 @@ return [
     'paste.discussion' => 'گفت‌وگو',
     'paste.message_placeholder' => 'پیام',
     'paste.send' => 'ارسال',
+    'paste.role_writer' => 'نویسنده پیست',
+    'paste.role_user' => 'کاربر {number}',
+    'paste.send_hint_multiline' => 'برای ارسال Enter و برای خط جدید Shift+Enter را بزنید',
 
     'install.title' => 'نصب',
     'install.subtitle' => 'اتصال پایگاه‌داده را برای اجرای اولیه تنظیم کنید.',

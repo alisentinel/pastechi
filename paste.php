@@ -103,7 +103,7 @@ if (!preg_match('/^[0-9]{6}$/', $code)) {
             <form id="discussionForm">
                 <textarea id="discussionInput" class="form-control mb-2" rows="3" placeholder="<?= htmlspecialchars(t('paste.message_placeholder'), ENT_QUOTES, 'UTF-8') ?>" maxlength="2000"></textarea>
                 <div class="d-flex align-items-center justify-content-between gap-2">
-                    <small class="text-secondary">Enter to send, Shift+Enter for new line</small>
+                    <small class="text-secondary"><?= htmlspecialchars(t('paste.send_hint_multiline'), ENT_QUOTES, 'UTF-8') ?></small>
                     <button type="submit" class="btn btn-sm btn-outline-light"><?= htmlspecialchars(t('paste.send'), ENT_QUOTES, 'UTF-8') ?></button>
                 </div>
             </form>

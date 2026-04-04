@@ -71,6 +71,9 @@ return [
     'paste.discussion' => 'Discussion',
     'paste.message_placeholder' => 'Message',
     'paste.send' => 'Send',
+    'paste.role_writer' => 'Paste Writer',
+    'paste.role_user' => 'User {number}',
+    'paste.send_hint_multiline' => 'Enter to send, Shift+Enter for new line',
 
     'install.title' => 'Install',
     'install.subtitle' => 'Configure database connection for first run.',

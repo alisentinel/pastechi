@@ -179,9 +179,11 @@ function hashString(input) {
 
 function formatRoleName(role) {
     if (role?.type === "author") {
-        return "Paste Writer";
+        return t("paste.role_writer", "Paste Writer");
     }
-    return `User ${Math.max(1, role.userIndex || 1)}`;
+    return t("paste.role_user", "User {number}", {
+        number: Math.max(1, role.userIndex || 1),
+    });
 }
 
 function createAvatarDataUri(seed, label) {
