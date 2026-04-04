@@ -72,7 +72,6 @@ const STORAGE_ROOT = __DIR__ . '/../storage';
 const PASTES_DIR = STORAGE_ROOT . '/pastes';
 const DISCUSSIONS_DIR = STORAGE_ROOT . '/discussions';
 const RATELIMIT_DIR = STORAGE_ROOT . '/ratelimit';
-const LOG_DIR = STORAGE_ROOT . '/logs';
 
 define('MAX_PAYLOAD_BYTES', max(8 * 1024, env_int('MAX_PAYLOAD_BYTES', 1024 * 1024)));
 const MAX_MESSAGE_BYTES = 16 * 1024;
@@ -105,6 +104,7 @@ const MAX_DELAY_MS = 550;
 define('SERVER_PEPPER', env_string('SERVER_PEPPER', 'change-me-in-production-32-random-bytes'));
 const FORENSIC_BUCKET_SECONDS = 3600;
 const MAX_LOG_LINE_BYTES = 4096;
+const LOG_RETENTION_SECONDS = 60 * 60 * 24 * 2;
 const API_REQUEST_TOKEN_TTL_SECONDS = 180;
 
 function attachment_allowed_extensions_list(): array
