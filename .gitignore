@@ -5,7 +5,6 @@ lib/db-config.local.php
 .env
 .env.local
 
-# Legacy file storage (unused with SQL runtime)
 # storage/
 storage/mirror/
 
