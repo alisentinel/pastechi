@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 return [
-    'app.tagline' => 'اگر سرور نتواند آن را بخواند، هیچ‌کس نمی‌تواند.',
+    'app.tagline' => 'اگر سرور نتواند آن را بخواند، هیچ‌کس نمی‌تواند؛ برای زمانی که اعتماد سخت است.',
     'ui.lang' => 'زبان',
     'ui.lang.en' => 'English',
     'ui.lang.fa' => 'فارسی',
@@ -14,7 +14,7 @@ return [
     'nav.privacy' => 'حریم خصوصی',
     'nav.mirror' => 'پیستچی خودتان را بسازید',
 
-    'home.title' => 'پیست با دانش صفر',
+    'home.title' => 'اشتراک‌گذاری ایمن',
     'home.open_label' => 'باز کردن با کد ۶ رقمی',
     'home.open_button' => 'باز کردن پیست',
     'home.create_button' => 'ایجاد پیست',
