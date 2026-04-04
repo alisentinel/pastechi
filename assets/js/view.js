@@ -10,6 +10,7 @@ import { installGlobalClientErrorLogging, logClient } from "./logger.js?v=202603
 
 const code = document.body.dataset.code || "";
 const statusEl = document.getElementById("status");
+const newPasteBtn = document.getElementById("newPasteBtn");
 const decryptForm = document.getElementById("decryptForm");
 const passwordInput = document.getElementById("password");
 const titleEl = document.getElementById("pasteTitle");
@@ -87,6 +88,7 @@ async function loadPaste() {
     if (!data?.ok) {
         displayStatus(t("js.view.unavailable", "Paste unavailable or already destroyed."));
         decryptForm.classList.add("d-none");
+        newPasteBtn?.classList.remove("d-none");
         logClient("warn", "view:paste_unavailable");
         return;
     }

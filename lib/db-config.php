@@ -278,6 +278,7 @@ function ensure_database_schema(): void
         modes_discussion BOOLEAN NOT NULL DEFAULT FALSE,
         modes_forensics BOOLEAN NOT NULL DEFAULT FALSE,
         discussion_salt VARCHAR(256) NOT NULL DEFAULT '',
+        discussion_author_key VARCHAR(128) NOT NULL DEFAULT '',
         requires_fragment BOOLEAN NOT NULL DEFAULT FALSE,
         password_protected BOOLEAN NOT NULL DEFAULT TRUE,
         forensics_buckets JSON DEFAULT NULL,
@@ -331,6 +332,7 @@ function ensure_database_schema(): void
     db_add_column_if_missing($pdo, 'pastes', 'modes_discussion', 'BOOLEAN NOT NULL DEFAULT FALSE');
     db_add_column_if_missing($pdo, 'pastes', 'modes_forensics', 'BOOLEAN NOT NULL DEFAULT FALSE');
     db_add_column_if_missing($pdo, 'pastes', 'discussion_salt', "VARCHAR(256) NOT NULL DEFAULT ''");
+    db_add_column_if_missing($pdo, 'pastes', 'discussion_author_key', "VARCHAR(128) NOT NULL DEFAULT ''");
     db_add_column_if_missing($pdo, 'pastes', 'requires_fragment', 'BOOLEAN NOT NULL DEFAULT FALSE');
     db_add_column_if_missing($pdo, 'pastes', 'password_protected', 'BOOLEAN NOT NULL DEFAULT TRUE');
     db_add_column_if_missing($pdo, 'pastes', 'forensics_buckets', 'JSON DEFAULT NULL');

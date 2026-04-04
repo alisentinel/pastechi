@@ -7,7 +7,29 @@ require_once __DIR__ . '/lib/i18n.php';
 $code = (string) ($_GET['code'] ?? '');
 if (!preg_match('/^[0-9]{6}$/', $code)) {
     http_response_code(404);
-    echo 'Not found';
+    ?>
+<!doctype html>
+<html lang="<?= htmlspecialchars(current_lang(), ENT_QUOTES, 'UTF-8') ?>" dir="<?= htmlspecialchars(lang_dir(), ENT_QUOTES, 'UTF-8') ?>" data-bs-theme="dark">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>404 · <?= APP_NAME ?></title>
+    <link rel="stylesheet" href="<?= htmlspecialchars(app_relative_url('assets/vendor/bootstrap/css/bootstrap.min.css'), ENT_QUOTES, 'UTF-8') ?>">
+    <link rel="stylesheet" href="<?= htmlspecialchars(app_relative_url('assets/css/styles.css'), ENT_QUOTES, 'UTF-8') ?>">
+</head>
+<body class="text-light" data-theme="dark">
+<main class="container py-5 app-wrap">
+    <div class="card pane bg-dark-subtle border-secondary-subtle shadow-sm">
+        <div class="card-body p-4 p-md-5 text-center">
+            <h1 class="h4 mb-2">404</h1>
+            <p class="text-secondary mb-3">Not found</p>
+            <a class="btn btn-primary" href="<?= htmlspecialchars(app_lang_url('create.php'), ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars(t('home.create_button'), ENT_QUOTES, 'UTF-8') ?></a>
+        </div>
+    </div>
+</main>
+</body>
+</html>
+<?php
     exit;
 }
 ?>
@@ -44,6 +66,7 @@ if (!preg_match('/^[0-9]{6}$/', $code)) {
 
     <h1 class="h4 mono mb-2"><?= htmlspecialchars($code, ENT_QUOTES, 'UTF-8') ?></h1>
     <p id="status" class="text-secondary"><?= htmlspecialchars(t('paste.loading'), ENT_QUOTES, 'UTF-8') ?></p>
+    <a id="newPasteBtn" class="btn btn-sm btn-outline-light d-none mb-3" href="<?= htmlspecialchars(app_lang_url('create.php'), ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars(t('home.create_button'), ENT_QUOTES, 'UTF-8') ?></a>
 
     <form id="decryptForm" class="card pane bg-dark-subtle border-secondary-subtle shadow-sm d-none mb-3">
         <div class="card-body">
