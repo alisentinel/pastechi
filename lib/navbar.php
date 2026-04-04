@@ -16,11 +16,15 @@ function render_app_navbar(): void
 
     $langEn = app_lang_url($langBasePath, array_merge($langQuery, ['lang' => 'en']));
     $langFa = app_lang_url($langBasePath, array_merge($langQuery, ['lang' => 'fa']));
+    $createHref = app_lang_url('create.php');
 
     ?>
     <div class="app-nav">
-        <a class="text-decoration-none app-brand"
-            href="<?= htmlspecialchars($brandHref, ENT_QUOTES, 'UTF-8') ?>"><?= APP_NAME ?></a>
+        <div class="app-nav-start">
+            <a class="text-decoration-none app-brand"
+                href="<?= htmlspecialchars($brandHref, ENT_QUOTES, 'UTF-8') ?>"><?= APP_NAME ?></a>
+            <a class="btn btn-sm btn-outline-light" href="<?= htmlspecialchars($createHref, ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars(t('home.create_button'), ENT_QUOTES, 'UTF-8') ?></a>
+        </div>
         <div class="app-nav-controls">
             <div class="dropdown">
                 <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="langDropdown"
