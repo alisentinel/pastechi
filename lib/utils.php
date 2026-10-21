@@ -157,23 +157,18 @@ function random_delay(): void
 
 function client_ip(): string
 {
-    $candidates = [
-        $_SERVER['HTTP_CF_CONNECTING_IP'] ?? null,
-        $_SERVER['HTTP_X_FORWARDED_FOR'] ?? null,
-        $_SERVER['REMOTE_ADDR'] ?? null,
-    ];
-
-    foreach ($candidates as $candidate) {
-        if (!is_string($candidate) || $candidate === '') {
-            continue;
+    // Proxy headers are client-controlled unless a CDN sets them, so only trust the one
+    // configured via TRUSTED_IP_HEADER (e.g. HTTP_AR_REAL_IP or HTTP_CF_CONNECTING_IP).
+    $header = TRUSTED_IP_HEADER;
+    if ($header !== '') {
+        $candidate = trim(explode(',', (string) ($_SERVER[$header] ?? ''))[0]);
+        if (filter_var($candidate, FILTER_VALIDATE_IP)) {
+            return $candidate;
         }
-        if (str_contains($candidate, ',')) {
-            $candidate = trim(explode(',', $candidate)[0]);
-        }
-        return $candidate;
     }
 
-    return '0.0.0.0';
+    $remote = (string) ($_SERVER['REMOTE_ADDR'] ?? '');
+    return $remote !== '' ? $remote : '0.0.0.0';
 }
 
 function ip_hash(): string
@@ -323,6 +318,7 @@ function enforce_rate_limit(string $key): void
     }
 
     $window = RATE_WINDOWS[$key];
+    $key .= '|' . substr(ip_hash(), 0, 40);
     $timestamp = now();
     $count = 0;
 

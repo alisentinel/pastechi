@@ -10,7 +10,7 @@ require_once __DIR__ . '/lib/navbar.php';
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title><?= APP_NAME ?> · Privacy Policy</title>
+    <title><?= htmlspecialchars(APP_NAME, ENT_QUOTES, 'UTF-8') ?> · Privacy Policy</title>
     <link rel="stylesheet" href="<?= htmlspecialchars(app_relative_url('assets/vendor/bootstrap/css/bootstrap.min.css'), ENT_QUOTES, 'UTF-8') ?>">
     <link rel="stylesheet" href="<?= htmlspecialchars(app_relative_url('assets/css/styles.css'), ENT_QUOTES, 'UTF-8') ?>">
 </head>

@@ -87,6 +87,7 @@ define(
         env_int('MAX_CREATE_REQUEST_BYTES', (MAX_PAYLOAD_BYTES * 2) + (ATTACHMENT_MAX_BYTES * 3) + (512 * 1024))
     )
 );
+define('TRUSTED_IP_HEADER', strtoupper(env_string('TRUSTED_IP_HEADER', '')));
 define('APP_ENFORCE_HTTPS', env_int('APP_ENFORCE_HTTPS', 1));
 
 const RATE_WINDOWS = [

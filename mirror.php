@@ -49,9 +49,14 @@ function should_exclude_path(string $relativePath): bool
         return true;
     }
 
+    // Never publish secrets or user data: env files, local DB config, and anything under storage/.
+    if (preg_match('#(^|/)\.env($|\.)#', $normalized) || $normalized === 'lib/db-config.local.php') {
+        return true;
+    }
+
     $excludedPrefixes = [
         '.git/',
-        'storage/mirror/',
+        'storage/',
     ];
 
     foreach ($excludedPrefixes as $prefix) {
@@ -352,7 +357,7 @@ if ($zipExists && $hash === '') {
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title><?= APP_NAME ?> · <?= htmlspecialchars(t('nav.mirror'), ENT_QUOTES, 'UTF-8') ?></title>
+    <title><?= htmlspecialchars(APP_NAME, ENT_QUOTES, 'UTF-8') ?> · <?= htmlspecialchars(t('nav.mirror'), ENT_QUOTES, 'UTF-8') ?></title>
     <link rel="stylesheet" href="<?= htmlspecialchars(app_relative_url('assets/vendor/bootstrap/css/bootstrap.min.css'), ENT_QUOTES, 'UTF-8') ?>">
     <link rel="stylesheet" href="<?= htmlspecialchars(app_relative_url('assets/css/styles.css'), ENT_QUOTES, 'UTF-8') ?>">
 </head>

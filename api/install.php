@@ -4,6 +4,12 @@ declare(strict_types=1);
 require_once __DIR__ . '/../lib/config.php';
 require_once __DIR__ . '/../lib/db-config.php';
 
+// Installation is one-shot: once DB settings exist, .env must be edited by hand.
+if (!db_setup_required()) {
+    header('Location: ' . app_url('install.php?error=already_installed'));
+    exit;
+}
+
 if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
     header('Location: ' . app_url('install.php?error=method_not_allowed'));
     exit;
@@ -18,6 +24,13 @@ $appName = trim((string) ($_POST['app_name'] ?? ''));
 $maxPayloadBytes = (int) ($_POST['max_payload_bytes'] ?? 0);
 $attachmentMaxBytes = (int) ($_POST['attachment_max_bytes'] ?? 0);
 $attachmentAllowedExtensions = trim((string) ($_POST['attachment_allowed_extensions'] ?? '*'));
+
+foreach ([$dbHost, $dbName, $dbUser, $dbPass, $appName, $attachmentAllowedExtensions] as $value) {
+    if (preg_match('/[\r\n]/', $value)) {
+        header('Location: ' . app_url('install.php?error=invalid_input'));
+        exit;
+    }
+}
 
 if (
     $dbHost === ''

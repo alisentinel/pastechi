@@ -15,7 +15,7 @@ if (!preg_match('/^[0-9]{6}$/', $code)) {
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>404 · <?= APP_NAME ?></title>
+    <title>404 · <?= htmlspecialchars(APP_NAME, ENT_QUOTES, 'UTF-8') ?></title>
     <link rel="stylesheet" href="<?= htmlspecialchars(app_relative_url('assets/vendor/bootstrap/css/bootstrap.min.css'), ENT_QUOTES, 'UTF-8') ?>">
     <link rel="stylesheet" href="<?= htmlspecialchars(app_relative_url('assets/css/styles.css'), ENT_QUOTES, 'UTF-8') ?>">
 </head>
@@ -40,7 +40,7 @@ if (!preg_match('/^[0-9]{6}$/', $code)) {
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title><?= htmlspecialchars(t('home.open_button'), ENT_QUOTES, 'UTF-8') ?> <?= htmlspecialchars($code, ENT_QUOTES, 'UTF-8') ?> · <?= APP_NAME ?></title>
+    <title><?= htmlspecialchars(t('home.open_button'), ENT_QUOTES, 'UTF-8') ?> <?= htmlspecialchars($code, ENT_QUOTES, 'UTF-8') ?> · <?= htmlspecialchars(APP_NAME, ENT_QUOTES, 'UTF-8') ?></title>
     <link rel="stylesheet" href="<?= htmlspecialchars(app_relative_url('assets/vendor/bootstrap/css/bootstrap.min.css'), ENT_QUOTES, 'UTF-8') ?>">
     <link rel="stylesheet" href="<?= htmlspecialchars(app_relative_url('assets/vendor/highlight/github-dark.min.css'), ENT_QUOTES, 'UTF-8') ?>">
     <link rel="stylesheet" href="<?= htmlspecialchars(app_relative_url('assets/css/styles.css'), ENT_QUOTES, 'UTF-8') ?>">

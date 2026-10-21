@@ -46,6 +46,13 @@ try {
         json_response(['ok' => false, 'error' => 'unavailable'], 404);
     }
 
+    // Enforce the time-lock server-side: no ciphertext and no view counted before lockUntil.
+    $lockUntil = (int) ($record['lockUntil'] ?? 0);
+    if ($lockUntil > $timestamp) {
+        $pdo->commit();
+        json_response(['ok' => true, 'code' => $code, 'lockUntil' => $lockUntil]);
+    }
+
     $viewerCookieKey = 'pastechi_uv_' . $code;
     $viewerAlreadyCounted = $uniqueViewsOnly && (($_COOKIE[$viewerCookieKey] ?? '') === '1');
     $countThisView = !$uniqueViewsOnly || !$viewerAlreadyCounted;

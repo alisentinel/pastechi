@@ -22,7 +22,7 @@ if (isset($_GET['error']) && $_GET['error'] !== '') {
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title><?= htmlspecialchars(t('install.title'), ENT_QUOTES, 'UTF-8') ?> · <?= APP_NAME ?></title>
+    <title><?= htmlspecialchars(t('install.title'), ENT_QUOTES, 'UTF-8') ?> · <?= htmlspecialchars(APP_NAME, ENT_QUOTES, 'UTF-8') ?></title>
     <link rel="stylesheet" href="<?= htmlspecialchars(app_relative_url('assets/vendor/bootstrap/css/bootstrap.min.css'), ENT_QUOTES, 'UTF-8') ?>">
     <link rel="stylesheet" href="<?= htmlspecialchars(app_relative_url('assets/css/styles.css'), ENT_QUOTES, 'UTF-8') ?>">
 </head>
@@ -32,7 +32,7 @@ if (isset($_GET['error']) && $_GET['error'] !== '') {
 
     <div class="card pane bg-dark-subtle border-secondary-subtle shadow-sm">
         <div class="card-body p-4 p-md-5">
-            <h1 class="h3 mb-2"><?= htmlspecialchars(t('install.title'), ENT_QUOTES, 'UTF-8') ?> <?= APP_NAME ?></h1>
+            <h1 class="h3 mb-2"><?= htmlspecialchars(t('install.title'), ENT_QUOTES, 'UTF-8') ?> <?= htmlspecialchars(APP_NAME, ENT_QUOTES, 'UTF-8') ?></h1>
             <p class="text-secondary mb-4"><?= htmlspecialchars(t('install.subtitle'), ENT_QUOTES, 'UTF-8') ?></p>
 
             <?php if ($errors !== []): ?>

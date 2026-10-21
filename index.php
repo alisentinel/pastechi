@@ -21,7 +21,7 @@ if ($setupRequired) {
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title><?= APP_NAME ?> · <?= htmlspecialchars(t('home.title'), ENT_QUOTES, 'UTF-8') ?></title>
+    <title><?= htmlspecialchars(APP_NAME, ENT_QUOTES, 'UTF-8') ?> · <?= htmlspecialchars(t('home.title'), ENT_QUOTES, 'UTF-8') ?></title>
     <link rel="stylesheet" href="<?= htmlspecialchars(app_relative_url('assets/vendor/bootstrap/css/bootstrap.min.css'), ENT_QUOTES, 'UTF-8') ?>">
     <link rel="stylesheet" href="<?= htmlspecialchars(app_relative_url('assets/css/styles.css'), ENT_QUOTES, 'UTF-8') ?>">
 </head>
@@ -33,7 +33,7 @@ if ($setupRequired) {
         <div class="flex-grow-1 d-flex align-items-center">
             <div class="card pane bg-dark-subtle border-secondary-subtle shadow-sm w-100">
                 <div class="card-body p-4 p-md-5">
-                    <h1 class="h3 mb-2"><?= APP_NAME ?></h1>
+                    <h1 class="h3 mb-2"><?= htmlspecialchars(APP_NAME, ENT_QUOTES, 'UTF-8') ?></h1>
                     <p class="text-secondary mb-4"><?= htmlspecialchars(t('app.tagline'), ENT_QUOTES, 'UTF-8') ?></p>
 
                     <?php if (!$dbConnected): ?>

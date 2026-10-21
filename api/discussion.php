@@ -21,8 +21,8 @@ $codeHash = code_hash($code);
 
 try {
     $pdo = get_db();
-    $pasteStmt = $pdo->prepare('SELECT modes_discussion, kdfIterations FROM pastes WHERE codeHash = :codeHash');
-    $pasteStmt->execute([':codeHash' => $codeHash]);
+    $pasteStmt = $pdo->prepare('SELECT modes_discussion, kdfIterations FROM pastes WHERE codeHash = :codeHash AND (expireAt = 0 OR expireAt > :now_ts)');
+    $pasteStmt->execute([':codeHash' => $codeHash, ':now_ts' => now()]);
     $paste = $pasteStmt->fetch(PDO::FETCH_ASSOC);
 } catch (Throwable $e) {
     app_log('error', 'discussion_storage_read_failed', ['codeHash' => $codeHash, 'error' => $e->getMessage()]);

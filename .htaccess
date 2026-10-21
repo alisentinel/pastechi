@@ -1,6 +1,13 @@
 Options -Indexes
 
 RewriteEngine On
+
+# Block dotfiles (.env, .git, ...), internals and CLI-only scripts. Keep ACME challenges reachable.
+RewriteRule ^\.well-known/ - [L]
+RewriteRule (^|/)\. - [F,L]
+RewriteRule ^(lib|migrations|storage)(/|$) - [F,L]
+RewriteRule ^(migrate|cron_cleanup)\.php$ - [F,L]
+
 RewriteCond %{REQUEST_FILENAME} -f [OR]
 RewriteCond %{REQUEST_FILENAME} -d
 RewriteRule ^ - [L]
