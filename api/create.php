@@ -76,6 +76,16 @@ if ($attachmentMetaInput !== null) {
     }
 }
 
+// Attachment bytes are encrypted client-side with their own key (kept inside the encrypted envelope)
+// and stored outside the database.
+$attachmentCiphertext = (string) ($input['attachmentCiphertext'] ?? '');
+if ($attachmentCiphertext !== '') {
+    $maxAttachmentChars = (int) ceil((ATTACHMENT_MAX_BYTES + 16) * 4 / 3) + 4;
+    if ($attachmentMetaInput === null || !is_base64url_string($attachmentCiphertext, $maxAttachmentChars)) {
+        json_response(['ok' => false, 'error' => 'invalid_attachment'], 400);
+    }
+}
+
 $ttlSeconds = normalize_ttl(isset($input['ttlSeconds']) ? (int) $input['ttlSeconds'] : 0);
 $maxViews = max(0, (int) ($input['maxViews'] ?? 0));
 $burnAfterRead = (bool) ($input['burnAfterRead'] ?? false);
@@ -146,7 +156,8 @@ try {
         discussion_author_key,
         requires_fragment,
         password_protected,
-        forensics_buckets
+        forensics_buckets,
+        has_attachment
     ) VALUES (
         :codeHash,
         :ciphertext,
@@ -168,7 +179,8 @@ try {
         :discussion_author_key,
         :requires_fragment,
         :password_protected,
-        :forensics_buckets
+        :forensics_buckets,
+        :has_attachment
     )');
 
     $stmt->execute([
@@ -193,6 +205,7 @@ try {
         ':requires_fragment' => $requiresFragment ? 1 : 0,
         ':password_protected' => $passwordProtected ? 1 : 0,
         ':forensics_buckets' => '{}',
+        ':has_attachment' => $attachmentCiphertext !== '' ? 1 : 0,
     ]);
 } catch (PDOException $e) {
     if ((int) $e->getCode() === 23000) {
@@ -203,6 +216,17 @@ try {
 
     app_log('error', 'create_storage_write_failed', ['codeHash' => $codeHash, 'error' => $e->getMessage()]);
     json_response(['ok' => false, 'error' => 'storage_write_failed'], 500);
+}
+
+// Store after the insert so a code collision never overwrites another paste's attachment.
+if ($attachmentCiphertext !== '') {
+    try {
+        attachment_store($codeHash, $attachmentCiphertext);
+    } catch (Throwable $e) {
+        $pdo->prepare('DELETE FROM pastes WHERE codeHash = :codeHash')->execute([':codeHash' => $codeHash]);
+        app_log('error', 'create_storage_write_failed', ['codeHash' => $codeHash, 'error' => $e->getMessage()]);
+        json_response(['ok' => false, 'error' => 'storage_write_failed'], 500);
+    }
 }
 
 app_log('info', 'paste_created', [

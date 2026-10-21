@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/attachment-storage.php';
 
 // Load local database config if available, otherwise use default
 if (is_file(__DIR__ . '/db-config.local.php')) {
@@ -381,6 +382,11 @@ function cleanup_expired_files(): void
     try {
         ensure_database_schema();
         $pdo = get_db();
+        $expired = $pdo->prepare('SELECT codeHash FROM pastes WHERE has_attachment = 1 AND ((expireAt > 0 AND expireAt <= :now_ts) OR (maxViews > 0 AND views >= maxViews))');
+        $expired->execute([':now_ts' => $timestamp]);
+        foreach ($expired->fetchAll(PDO::FETCH_COLUMN) as $expiredHash) {
+            attachment_delete((string) $expiredHash);
+        }
         $deletePastes = $pdo->prepare('DELETE FROM pastes WHERE (expireAt > 0 AND expireAt <= :now_ts) OR (maxViews > 0 AND views >= maxViews)');
         $deletePastes->execute([':now_ts' => $timestamp]);
 

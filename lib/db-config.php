@@ -282,6 +282,7 @@ function ensure_database_schema(): void
         requires_fragment BOOLEAN NOT NULL DEFAULT FALSE,
         password_protected BOOLEAN NOT NULL DEFAULT TRUE,
         forensics_buckets JSON DEFAULT NULL,
+        has_attachment BOOLEAN NOT NULL DEFAULT FALSE,
         INSERT_TS TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         UPDATE_TS TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         UNIQUE KEY idx_codeHash (codeHash),
@@ -336,6 +337,7 @@ function ensure_database_schema(): void
     db_add_column_if_missing($pdo, 'pastes', 'requires_fragment', 'BOOLEAN NOT NULL DEFAULT FALSE');
     db_add_column_if_missing($pdo, 'pastes', 'password_protected', 'BOOLEAN NOT NULL DEFAULT TRUE');
     db_add_column_if_missing($pdo, 'pastes', 'forensics_buckets', 'JSON DEFAULT NULL');
+    db_add_column_if_missing($pdo, 'pastes', 'has_attachment', 'BOOLEAN NOT NULL DEFAULT FALSE');
 
     // Legacy upgrade path: move from plaintext-code PK schema to hash-based schema.
     if (db_column_exists($pdo, 'pastes', 'code')) {

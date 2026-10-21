@@ -316,7 +316,8 @@ function renderAttachment(attachment) {
         return;
     }
 
-    if (!attachment || typeof attachment !== "object" || !attachment.data) {
+    const external = attachment?.encoding === "aes-gcm-external";
+    if (!attachment || typeof attachment !== "object" || (!attachment.data && !external)) {
         attachmentBox.classList.add("d-none");
         return;
     }
@@ -328,7 +329,11 @@ function renderAttachment(attachment) {
     decryptedAttachment = {
         name,
         type,
-        bytes: b64UrlToBytes(String(attachment.data || "")),
+        // Legacy pastes embed the bytes; newer ones keep a key here and the ciphertext beside the envelope.
+        bytes: external ? null : b64UrlToBytes(String(attachment.data || "")),
+        key: external ? String(attachment.key || "") : "",
+        iv: external ? String(attachment.iv || "") : "",
+        ciphertext: external ? String(pasteData?.attachmentCiphertext || "") : "",
     };
     attachmentBox.classList.remove("d-none");
 }
@@ -471,12 +476,33 @@ decryptForm?.addEventListener("submit", async (event) => {
     await attemptDecrypt(passwordInput.value || "");
 });
 
-downloadAttachmentBtn?.addEventListener("click", () => {
+async function attachmentBytes(attachment) {
+    if (attachment.bytes) {
+        return attachment.bytes;
+    }
+    const key = await crypto.subtle.importKey("raw", b64UrlToBytes(attachment.key), "AES-GCM", false, ["decrypt"]);
+    const plain = await crypto.subtle.decrypt(
+        { name: "AES-GCM", iv: b64UrlToBytes(attachment.iv) },
+        key,
+        b64UrlToBytes(attachment.ciphertext)
+    );
+    return new Uint8Array(plain);
+}
+
+downloadAttachmentBtn?.addEventListener("click", async () => {
     if (!decryptedAttachment) {
         return;
     }
 
-    const blob = new Blob([decryptedAttachment.bytes], { type: decryptedAttachment.type || "application/octet-stream" });
+    let bytes;
+    try {
+        bytes = await attachmentBytes(decryptedAttachment);
+    } catch (_error) {
+        alert(t("js.view.attachment_decrypt_failed", "Attachment could not be decrypted."));
+        return;
+    }
+
+    const blob = new Blob([bytes], { type: decryptedAttachment.type || "application/octet-stream" });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;

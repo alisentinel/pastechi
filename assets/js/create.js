@@ -173,6 +173,7 @@ function generateDiscussionAuthorKey() {
 async function createEncryptedPaste({
     payload,
     attachmentMeta,
+    attachmentCiphertext,
     password,
     urlSecret,
     kdfIterations,
@@ -227,6 +228,7 @@ async function createEncryptedPaste({
                 discussionSalt: discussion ? randomSalt() : "",
                 discussionAuthorKey: discussion ? discussionAuthorKey : "",
                 attachmentMeta,
+                attachmentCiphertext,
             }),
         });
 
@@ -310,14 +312,23 @@ function validateAttachment(file) {
     };
 }
 
-async function buildEncryptedAttachmentPayload(file, meta) {
-    const buffer = await file.arrayBuffer();
+// The attachment gets its own random key, which travels inside the encrypted paste payload.
+// Only the attachment ciphertext is uploaded separately (stored in object storage).
+async function buildEncryptedAttachment(file, meta) {
+    const keyBytes = crypto.getRandomValues(new Uint8Array(32));
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const key = await crypto.subtle.importKey("raw", keyBytes, "AES-GCM", false, ["encrypt"]);
+    const encrypted = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, await file.arrayBuffer());
     return {
-        name: meta.name,
-        type: meta.type,
-        size: meta.size,
-        data: bytesToB64Url(new Uint8Array(buffer)),
-        encoding: "base64url",
+        payload: {
+            name: meta.name,
+            type: meta.type,
+            size: meta.size,
+            key: bytesToB64Url(keyBytes),
+            iv: bytesToB64Url(iv),
+            encoding: "aes-gcm-external",
+        },
+        ciphertext: bytesToB64Url(new Uint8Array(encrypted)),
     };
 }
 
@@ -365,10 +376,13 @@ form?.addEventListener("submit", async (event) => {
 
     let attachmentMeta = null;
     let attachmentPayload = null;
+    let attachmentCiphertext = "";
     if (attachmentFile) {
         try {
             attachmentMeta = validateAttachment(attachmentFile);
-            attachmentPayload = await buildEncryptedAttachmentPayload(attachmentFile, attachmentMeta);
+            const encryptedAttachment = await buildEncryptedAttachment(attachmentFile, attachmentMeta);
+            attachmentPayload = encryptedAttachment.payload;
+            attachmentCiphertext = encryptedAttachment.ciphertext;
         } catch (attachmentError) {
             alert(attachmentError?.message || t("js.create.attachment_invalid", "Invalid attachment."));
             return;
@@ -409,6 +423,7 @@ form?.addEventListener("submit", async (event) => {
         const result = await createEncryptedPaste({
             payload,
             attachmentMeta,
+            attachmentCiphertext,
             password,
             urlSecret,
             kdfIterations,

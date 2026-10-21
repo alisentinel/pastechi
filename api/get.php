@@ -33,11 +33,15 @@ try {
     $maxViews = (int) ($record['maxViews'] ?? 0);
     $views = (int) ($record['views'] ?? 0);
     $uniqueViewsOnly = (bool) ($record['uniqueViewsOnly'] ?? false);
+    $hasAttachment = (bool) ($record['has_attachment'] ?? false);
 
     if (($expireAt > 0 && $timestamp >= $expireAt) || ($maxViews > 0 && $views >= $maxViews)) {
         $delete = $pdo->prepare('DELETE FROM pastes WHERE codeHash = :codeHash');
         $delete->execute([':codeHash' => $codeHash]);
         $pdo->commit();
+        if ($hasAttachment) {
+            attachment_delete($codeHash);
+        }
         app_log('info', 'get_expired_or_consumed', ['codeHash' => $codeHash]);
         json_response(['ok' => false, 'error' => 'unavailable'], 404);
     }
@@ -112,6 +116,10 @@ try {
         'expireAt' => $expireAt,
     ];
 
+    if ($hasAttachment) {
+        $response['attachmentCiphertext'] = attachment_load($codeHash);
+    }
+
     if ($forensicsEnabled) {
         $response['forensics'] = [
             'views' => $views,
@@ -130,6 +138,10 @@ try {
     }
 
     $pdo->commit();
+
+    if ($shouldDelete && $hasAttachment) {
+        attachment_delete($codeHash);
+    }
 } catch (Throwable $e) {
     if (isset($pdo) && $pdo instanceof PDO && $pdo->inTransaction()) {
         $pdo->rollBack();
