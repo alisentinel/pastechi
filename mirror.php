@@ -50,7 +50,7 @@ function should_exclude_path(string $relativePath): bool
     }
 
     // Never publish secrets or user data: env files, local DB config, and anything under storage/.
-    if (preg_match('#(^|/)\.env($|\.)#', $normalized) || $normalized === 'lib/db-config.local.php') {
+    if ((preg_match('#(^|/)\.env($|\.)#', $normalized) && !str_ends_with($normalized, '.env.example')) || $normalized === 'lib/db-config.local.php') {
         return true;
     }
 

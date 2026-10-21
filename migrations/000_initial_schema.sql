@@ -39,6 +39,7 @@ CREATE TABLE IF NOT EXISTS discussions (
     message_iv VARCHAR(256) NOT NULL COMMENT 'Base64-encoded IV for message encryption',
     message_kdfIterations INT NOT NULL COMMENT 'PBKDF2 iterations for message key',
     createdAt BIGINT NOT NULL COMMENT 'Unix timestamp of message creation',
+    is_author BOOLEAN NOT NULL DEFAULT FALSE COMMENT 'Posted by the verified paste author',
     INSERT_TS TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (paste_codeHash) REFERENCES pastes(codeHash) ON DELETE CASCADE,
     INDEX idx_paste_codeHash (paste_codeHash),

@@ -201,7 +201,8 @@ try {
         ':modes_discussion' => $discussionEnabled ? 1 : 0,
         ':modes_forensics' => $forensicsEnabled ? 1 : 0,
         ':discussion_salt' => $discussionSalt,
-        ':discussion_author_key' => $discussionAuthorKey,
+        // Only a hash is stored and it is never sent to viewers; the author proves identity on post.
+        ':discussion_author_key' => $discussionAuthorKey !== '' ? hash('sha256', $discussionAuthorKey) : '',
         ':requires_fragment' => $requiresFragment ? 1 : 0,
         ':password_protected' => $passwordProtected ? 1 : 0,
         ':forensics_buckets' => '{}',

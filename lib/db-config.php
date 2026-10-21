@@ -297,6 +297,7 @@ function ensure_database_schema(): void
         message_iv VARCHAR(256) NOT NULL,
         message_kdfIterations INT NOT NULL,
         createdAt BIGINT NOT NULL,
+        is_author BOOLEAN NOT NULL DEFAULT FALSE,
         INSERT_TS TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (paste_codeHash) REFERENCES pastes(codeHash) ON DELETE CASCADE,
         INDEX idx_paste_codeHash (paste_codeHash),
@@ -407,6 +408,7 @@ function ensure_database_schema(): void
     }
 
     if (db_table_exists($pdo, 'discussions')) {
+        db_add_column_if_missing($pdo, 'discussions', 'is_author', 'BOOLEAN NOT NULL DEFAULT FALSE');
         try {
             $pdo->exec('ALTER TABLE discussions ADD CONSTRAINT fk_discussions_codehash FOREIGN KEY (paste_codeHash) REFERENCES pastes(codeHash) ON DELETE CASCADE');
         } catch (Throwable $e) {

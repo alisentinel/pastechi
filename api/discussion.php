@@ -21,7 +21,7 @@ $codeHash = code_hash($code);
 
 try {
     $pdo = get_db();
-    $pasteStmt = $pdo->prepare('SELECT modes_discussion, kdfIterations FROM pastes WHERE codeHash = :codeHash AND (expireAt = 0 OR expireAt > :now_ts)');
+    $pasteStmt = $pdo->prepare('SELECT modes_discussion, kdfIterations, discussion_author_key FROM pastes WHERE codeHash = :codeHash AND (expireAt = 0 OR expireAt > :now_ts)');
     $pasteStmt->execute([':codeHash' => $codeHash, ':now_ts' => now()]);
     $paste = $pasteStmt->fetch(PDO::FETCH_ASSOC);
 } catch (Throwable $e) {
@@ -36,7 +36,7 @@ if (!is_array($paste) || ((bool) ($paste['modes_discussion'] ?? false) !== true)
 
 if ($method === 'GET') {
     $since = max(0, (int) ($_GET['since'] ?? 0));
-    $stmt = $pdo->prepare('SELECT id, createdAt, message_ciphertext, message_iv FROM discussions WHERE paste_codeHash = :codeHash AND id > :since ORDER BY id ASC LIMIT 200');
+    $stmt = $pdo->prepare('SELECT id, createdAt, message_ciphertext, message_iv, is_author FROM discussions WHERE paste_codeHash = :codeHash AND id > :since ORDER BY id ASC LIMIT 200');
     $stmt->bindValue(':codeHash', $codeHash, PDO::PARAM_STR);
     $stmt->bindValue(':since', $since, PDO::PARAM_INT);
     $stmt->execute();
@@ -48,6 +48,7 @@ if ($method === 'GET') {
             'ts' => (int) ($row['createdAt'] ?? 0),
             'ciphertext' => (string) ($row['message_ciphertext'] ?? ''),
             'iv' => (string) ($row['message_iv'] ?? ''),
+            'isAuthor' => (bool) ($row['is_author'] ?? false),
         ];
     }
 
@@ -80,14 +81,19 @@ if ($ciphertext === '' || !is_base64url_string($ciphertext, MAX_MESSAGE_BYTES * 
     json_response(['ok' => false, 'error' => 'invalid_message'], 400);
 }
 
+$authorKey = (string) ($input['authorKey'] ?? '');
+$storedAuthorHash = (string) ($paste['discussion_author_key'] ?? '');
+$isAuthor = $authorKey !== '' && strlen($storedAuthorHash) === 64 && hash_equals($storedAuthorHash, hash('sha256', $authorKey));
+
 try {
-    $insert = $pdo->prepare('INSERT INTO discussions (paste_codeHash, message_ciphertext, message_iv, message_kdfIterations, createdAt) VALUES (:codeHash, :ciphertext, :iv, :kdfIterations, :createdAt)');
+    $insert = $pdo->prepare('INSERT INTO discussions (paste_codeHash, message_ciphertext, message_iv, message_kdfIterations, createdAt, is_author) VALUES (:codeHash, :ciphertext, :iv, :kdfIterations, :createdAt, :isAuthor)');
     $insert->execute([
         ':codeHash' => $codeHash,
         ':ciphertext' => $ciphertext,
         ':iv' => $iv,
         ':kdfIterations' => (int) ($paste['kdfIterations'] ?? MIN_KDF_ITERATIONS),
         ':createdAt' => now(),
+        ':isAuthor' => $isAuthor ? 1 : 0,
     ]);
 
     $newId = (int) $pdo->lastInsertId();

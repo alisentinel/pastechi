@@ -219,13 +219,13 @@ function setCookieValue(key, value, maxAgeSeconds) {
     document.cookie = `${encodeURIComponent(key)}=${encodeURIComponent(value)}; Max-Age=${maxAgeSeconds}; Path=${cookiePath()}; SameSite=Lax${secure}`;
 }
 
-function getOrCreateParticipantKey() {
-    const authorCookieKey = `pastechi_author_${code}`;
-    const authorKey = getCookieValue(authorCookieKey);
-    if (authorKey) {
-        return authorKey;
-    }
+// The author key is a secret sent only to the server; messages carry a separate participant key
+// so other participants never learn it.
+function getAuthorKey() {
+    return getCookieValue(`pastechi_author_${code}`);
+}
 
+function getOrCreateParticipantKey() {
     const participantCookieKey = `pastechi_participant_${code}`;
     const existingParticipant = getCookieValue(participantCookieKey);
     if (existingParticipant) {
@@ -237,18 +237,18 @@ function getOrCreateParticipantKey() {
     return generated;
 }
 
-function resolveRoleForAuthor(authorKey) {
+function resolveRoleForAuthor(authorKey, isAuthor) {
+    if (isAuthor) {
+        return { type: "author", userIndex: 0 };
+    }
+
     const key = authorKey || "anon";
     if (authorRoleMap.has(key)) {
         return authorRoleMap.get(key);
     }
 
-    const pasteAuthorKey = String(pasteData?.discussion?.authorKey || "");
     let role = null;
-
-    if (key && pasteAuthorKey && key === pasteAuthorKey) {
-        role = { type: "author", userIndex: 0 };
-    } else {
+    {
         participantCounter += 1;
         role = { type: "user", userIndex: participantCounter };
     }
@@ -275,7 +275,7 @@ function renderDiscussionBubble(messageEnvelope, decodedMessage) {
         return;
     }
 
-    const role = resolveRoleForAuthor(String(decodedMessage?.authorKey || ""));
+    const role = resolveRoleForAuthor(String(decodedMessage?.authorKey || ""), messageEnvelope?.isAuthor === true);
     const roleName = roleNameByRole(role);
     const color = bubbleColorByRole(role);
 
@@ -451,6 +451,7 @@ discussionForm?.addEventListener("submit", async (event) => {
         body: JSON.stringify({
             requestToken: String(contextData?.requestTokens?.discussionPost || ""),
             envelope,
+            authorKey: getAuthorKey(),
         }),
     });
     const data = await response.json();

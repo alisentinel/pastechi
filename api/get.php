@@ -111,7 +111,6 @@ try {
         ],
         'discussion' => [
             'salt' => (string) ($record['discussion_salt'] ?? ''),
-            'authorKey' => (string) ($record['discussion_author_key'] ?? ''),
         ],
         'access' => [
             'requiresFragment' => (bool) ($record['requires_fragment'] ?? false),
